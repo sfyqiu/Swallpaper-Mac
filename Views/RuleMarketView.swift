@@ -260,7 +260,7 @@ struct RuleMarketItemView: View {
                     Button(action: onInstall) {
                         if isInstalling {
                             ProgressView()
-                                .scaleEffect(0.7)
+                                .controlSize(.small)
                         } else {
                             Label("安装", systemImage: "plus.circle")
                         }

@@ -48,6 +48,8 @@ final class ArcBackgroundSettings: ObservableObject {
     @Published var dotGridOpacity: Double = 0.05
     /// 是否启用噪点纹理（桌面用）
     @Published var useNoiseTexture: Bool = false
+    /// 简洁模式：开启后去掉背景氛围效果，使用纯黑背景
+    @Published var compactMode: Bool = false
 
     // MARK: - 探索页独立颗粒强度（各自持久化）
 
@@ -102,6 +104,7 @@ final class ArcBackgroundSettings: ObservableObject {
             $grainIntensity.map { _ in () }.eraseToAnyPublisher(),
             $dotGridOpacity.map { _ in () }.eraseToAnyPublisher(),
             $useNoiseTexture.map { _ in () }.eraseToAnyPublisher(),
+            $compactMode.map { _ in () }.eraseToAnyPublisher(),
             $exploreGrainWallpaper.map { _ in () }.eraseToAnyPublisher(),
             $exploreGrainAnime.map { _ in () }.eraseToAnyPublisher(),
             $exploreGrainMedia.map { _ in () }.eraseToAnyPublisher()
@@ -120,35 +123,46 @@ final class ArcBackgroundSettings: ObservableObject {
         isLightMode ? Color(hex: "F5F5F0") : Color(hex: "121214")
     }
 
+    /// 简洁模式背景色：固定深色，不随主题变化
+    var compactBackground: Color {
+        Color(hex: "121214")
+    }
+
     /// 表面色（面板底色倾向）
     var surfaceColor: Color {
-        isLightMode ? Color(hex: "FFFFFF") : Color(hex: "1C1C1E")
+        effectiveDarkText ? Color(hex: "1C1C1E") : Color(hex: "FFFFFF")
+    }
+
+    /// 简洁模式下是否用深色文字（当前简洁模式强制深色背景，文字需为白色）
+    private var effectiveDarkText: Bool {
+        compactMode || !isLightMode
     }
 
     /// 主文字色
     var primaryText: Color {
-        isLightMode ? Color(hex: "1A1A1A") : Color.white
+        effectiveDarkText ? Color.white : Color(hex: "1A1A1A")
     }
 
     /// 次级文字色
     var secondaryText: Color {
-        isLightMode ? Color(hex: "666666") : Color.white.opacity(0.7)
+        effectiveDarkText ? Color.white.opacity(0.7) : Color(hex: "666666")
     }
 
     /// 点阵颜色
     var dotColor: Color {
-        isLightMode ? Color.black : Color.white
+        effectiveDarkText ? Color.white : Color.black
     }
 
     /// 边框颜色
     var borderColor: Color {
-        isLightMode ? Color.black.opacity(0.08) : Color.white.opacity(0.12)
+        effectiveDarkText ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
     }
 
     /// 磨砂材质底色（用于非系统 Material 的 fallback）
     var frostedTint: Color {
-        isLightMode ? Color.white.opacity(0.45 + frostedIntensity * 0.3)
-                    : Color.white.opacity(0.08 + frostedIntensity * 0.12)
+        effectiveDarkText
+            ? Color.white.opacity(0.08 + frostedIntensity * 0.12)
+            : Color.white.opacity(0.45 + frostedIntensity * 0.3)
     }
 
     // MARK: - 操作
@@ -192,6 +206,7 @@ final class ArcBackgroundSettings: ObservableObject {
         dotGridOpacity = defaults.double(forKey: "arc_dot_grid_opacity").clamped(to: 0...1)
         if dotGridOpacity == 0 { dotGridOpacity = 0.05 }
         useNoiseTexture = defaults.object(forKey: "arc_use_noise") as? Bool ?? false
+        compactMode = defaults.object(forKey: "arc_compact_mode") as? Bool ?? false
         // 探索页独立颗粒强度
         let gw = defaults.double(forKey: "explore_grain_wallpaper")
         exploreGrainWallpaper = gw > 0 ? gw : 0.5
@@ -210,6 +225,7 @@ final class ArcBackgroundSettings: ObservableObject {
         defaults.set(grainIntensity, forKey: "arc_grain_intensity")
         defaults.set(dotGridOpacity, forKey: "arc_dot_grid_opacity")
         defaults.set(useNoiseTexture, forKey: "arc_use_noise")
+        defaults.set(compactMode, forKey: "arc_compact_mode")
         // 探索页独立颗粒强度
         defaults.set(exploreGrainWallpaper, forKey: "explore_grain_wallpaper")
         defaults.set(exploreGrainAnime, forKey: "explore_grain_anime")

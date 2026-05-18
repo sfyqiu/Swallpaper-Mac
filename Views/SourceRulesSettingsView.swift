@@ -377,8 +377,7 @@ struct AddRuleSheet: View {
                 } label: {
                     if isLoading {
                         ProgressView()
-                            .scaleEffect(0.8)
-                            .frame(maxWidth: .infinity)
+                            .controlSize(.small)
                             .padding(.vertical, 12)
                     } else {
                         Text(t("sourceRules.install"))
@@ -495,8 +494,7 @@ struct GitHubImportSheet: View {
                 } label: {
                     if isLoading {
                         ProgressView()
-                            .scaleEffect(0.8)
-                            .frame(maxWidth: .infinity)
+                            .controlSize(.small)
                             .padding(.vertical, 12)
                     } else {
                         Text(t("sourceRules.install"))

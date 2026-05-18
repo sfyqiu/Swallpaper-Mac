@@ -122,7 +122,7 @@ private final class ScreenVolumeControlView: NSView {
 final class StatusBarController: NSObject {
     // MARK: - 单例
     static let shared = StatusBarController()
-    
+
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
 
@@ -139,10 +139,12 @@ final class StatusBarController: NSObject {
     private var releaseMemoryHandler: (() -> Void)?
     private var quitHandler: (() -> Void)?
     private var cancellables = Set<AnyCancellable>()
-    
+
     // 各屏幕独立音量条
     private var screenVolumeItems: [NSMenuItem] = []
-    
+    // 各屏幕独立暂停/关闭菜单项
+    private var wallpaperControlItems: [NSMenuItem] = []
+
     // 标记是否已配置，防止重复配置
     private var isConfigured = false
 
@@ -171,18 +173,18 @@ final class StatusBarController: NSObject {
             print("[StatusBarController] Failed to get status item button")
             return
         }
-        
+
         // 尝试使用系统图标，如果不存在则使用备用图标
         let systemImageNames = ["sparkles.tv", "photo.fill", "tv.fill", "desktopcomputer"]
         var image: NSImage?
-        
+
         for name in systemImageNames {
             if let img = NSImage(systemSymbolName: name, accessibilityDescription: "WaifuX") {
                 image = img
                 break
             }
         }
-        
+
         if let image = image {
             image.isTemplate = true
             // 在 macOS 14 上需要设置合适的图标大小
@@ -193,21 +195,18 @@ final class StatusBarController: NSObject {
             button.title = "WH"
             button.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
         }
-        
+
         button.toolTip = "WaifuX"
 
         openWindowItem.target = self
         releaseMemoryItem.target = self
-        toggleWallpaperItem.target = self
-        playPauseItem.target = self
         muteItem.target = self
         quitItem.target = self
 
         menu.addItem(openWindowItem)
         menu.addItem(releaseMemoryItem)
         menu.addItem(.separator())
-        menu.addItem(toggleWallpaperItem)
-        menu.addItem(playPauseItem)
+        // toggleWallpaperItem 和 playPauseItem 在 refreshMenuState 中动态构建
         menu.addItem(muteItem)
         menu.addItem(.separator())
         menu.addItem(quitItem)
@@ -236,69 +235,104 @@ final class StatusBarController: NSObject {
             .store(in: &cancellables)
     }
 
+    /// 为指定屏幕构建音量滑块菜单项
+    private func buildVolumeMenuItem(for screen: NSScreen) -> NSMenuItem {
+        let controlView = ScreenVolumeControlView(screenName: screen.localizedName)
+        controlView.onVolumeChanged = { [weak self] volume in
+            guard let self = self else { return }
+            // 只设该屏幕的音量，不触及其他屏幕，也不动全局静音
+            self.videoWallpaperManager.setVolume(volume, for: screen)
+        }
+        let item = NSMenuItem()
+        item.view = controlView
+        let vol = videoWallpaperManager.volume(for: screen)
+        // 显示实际音量，不受全局 isMuted 影响
+        controlView.setVolume(vol, isMuted: false)
+        return item
+    }
+
     private func refreshMenuState() {
         let hasNativeWallpaper = videoWallpaperManager.isVideoWallpaperActive
         let hasExternalWallpaper = weBridge.isControllingExternalEngine
         let hasWallpaper = hasNativeWallpaper || hasExternalWallpaper
 
-        // 开启/关闭动态壁纸菜单项
-        toggleWallpaperItem.title = hasWallpaper ? t("statusbar.disableWallpaper") : t("statusbar.enableWallpaper")
-
-        // 暂停/恢复只在有动态壁纸时可用
-        playPauseItem.isEnabled = hasWallpaper
-        playPauseItem.title = (hasExternalWallpaper ? weBridge.isExternalPaused : videoWallpaperManager.isPaused)
-            ? t("statusbar.resumeWallpaper")
-            : t("statusbar.pauseWallpaper")
-
-        // 静音只在本机视频壁纸时可用（外部引擎自行处理音频）
-        muteItem.isEnabled = hasNativeWallpaper
-        muteItem.title = videoWallpaperManager.isMuted ? t("statusbar.unmuteWallpaper") : t("statusbar.muteWallpaper")
-
-        // 音量滑块：只在有本机视频动态壁纸时显示（CLI 暂不支持音量调节）
-        updateVolumeSliderVisibility()
-    }
-
-    private func updateVolumeSliderVisibility() {
-        let hasNativeWallpaper = videoWallpaperManager.isVideoWallpaperActive
-
-        // 先移除所有现有的屏幕音量 items
-        for item in screenVolumeItems {
+        // 移除旧的动态菜单项
+        for item in wallpaperControlItems {
             if item.menu != nil {
                 menu.removeItem(item)
             }
         }
-        screenVolumeItems.removeAll()
+        wallpaperControlItems.removeAll()
 
-        guard hasNativeWallpaper else { return }
-
+        // 构建各屏幕独立的暂停/关闭/音量菜单项
         let activeScreens = videoWallpaperManager.activeScreens
-        guard !activeScreens.isEmpty else { return }
+        let isMultiScreenNative = activeScreens.count > 1
 
-        let muteIndex = menu.index(of: muteItem)
-        guard muteIndex != -1 else { return }
-        var insertIndex = muteIndex + 1
+        if isMultiScreenNative {
+            // 多显示器：每屏独立控制组 → [暂停] [关闭壁纸] [音量滑块] 为一组，按显示器顺序排列
+            for screen in activeScreens {
+                let screenName = screen.localizedName
+                let isScreenPaused = videoWallpaperManager.isPaused(on: screen)
 
-        for screen in activeScreens {
-            let controlView = ScreenVolumeControlView(screenName: screen.localizedName)
-            controlView.onVolumeChanged = { [weak self] volume in
-                guard let self = self else { return }
-                self.videoWallpaperManager.setVolume(volume, for: screen)
-                if volume > 0 && self.videoWallpaperManager.isMuted == true {
-                    self.videoWallpaperManager.setMuted(false)
-                } else if volume == 0 && self.videoWallpaperManager.isMuted == false {
-                    self.videoWallpaperManager.setMuted(true)
+                let pauseItem = NSMenuItem(
+                    title: isScreenPaused
+                        ? "\(t("statusbar.resumeWallpaper")) (\(screenName))"
+                        : "\(t("statusbar.pauseWallpaper")) (\(screenName))",
+                    action: #selector(perScreenTogglePlayback(_:)),
+                    keyEquivalent: ""
+                )
+                pauseItem.target = self
+                pauseItem.representedObject = screen
+                wallpaperControlItems.append(pauseItem)
+
+                let disableItem = NSMenuItem(
+                    title: "\(t("statusbar.disableWallpaper")) (\(screenName))",
+                    action: #selector(perScreenToggleDynamicWallpaper(_:)),
+                    keyEquivalent: ""
+                )
+                disableItem.target = self
+                disableItem.representedObject = screen
+                wallpaperControlItems.append(disableItem)
+
+                // 该显示器的音量滑块紧随其后（同一显示器内）
+                if hasNativeWallpaper {
+                    wallpaperControlItems.append(buildVolumeMenuItem(for: screen))
                 }
             }
+        } else {
+            // 单显示器：保持原有简洁菜单
+            toggleWallpaperItem.title = hasWallpaper ? t("statusbar.disableWallpaper") : t("statusbar.enableWallpaper")
+            toggleWallpaperItem.target = self
+            wallpaperControlItems.append(toggleWallpaperItem)
 
-            let item = NSMenuItem()
-            item.view = controlView
-            let volume = videoWallpaperManager.volume(for: screen)
-            controlView.setVolume(volume, isMuted: videoWallpaperManager.isMuted)
+            playPauseItem.isEnabled = hasWallpaper
+            playPauseItem.title = (hasExternalWallpaper ? weBridge.isExternalPaused : videoWallpaperManager.isPaused)
+                ? t("statusbar.resumeWallpaper")
+                : t("statusbar.pauseWallpaper")
+            playPauseItem.target = self
+            wallpaperControlItems.append(playPauseItem)
 
-            menu.insertItem(item, at: insertIndex)
-            screenVolumeItems.append(item)
-            insertIndex += 1
+            // 单屏音量滑块也跟在控制项后面，而不是放到 mute 下面
+            if hasNativeWallpaper, let screen = activeScreens.first ?? NSScreen.screens.first {
+                wallpaperControlItems.append(buildVolumeMenuItem(for: screen))
+            }
         }
+
+        // 将动态菜单项插入到 muteItem 之前（separator 之后）
+        // 注意：每个显示器的音量滑块必须紧跟在该显示器的暂停/关闭项后面
+        let separatorIndex = menu.index(of: muteItem)
+        if separatorIndex != -1 {
+            // 每次插入后重新获取 muteItem 的位置，确保后续项紧跟在前一项后面
+            var currentInsertIndex = separatorIndex
+            for item in wallpaperControlItems {
+                menu.insertItem(item, at: currentInsertIndex)
+                currentInsertIndex += 1
+            }
+        }
+
+        // 全局静音开关
+        muteItem.isEnabled = hasNativeWallpaper
+        muteItem.title = videoWallpaperManager.isMuted ? t("statusbar.unmuteWallpaper") : t("statusbar.muteWallpaper")
     }
 
     @objc private func showMainWindow() {
@@ -307,6 +341,47 @@ final class StatusBarController: NSObject {
 
     @objc private func releaseForegroundMemory() {
         releaseMemoryHandler?()
+    }
+
+    @objc private func perScreenTogglePlayback(_ sender: NSMenuItem) {
+        guard let screen = sender.representedObject as? NSScreen else {
+            togglePlayback()
+            return
+        }
+
+        if weBridge.isControllingExternalEngine {
+            // CLI 壁纸暂不支持单屏暂停，走全局
+            if weBridge.isExternalPaused {
+                weBridge.resumeWallpaper()
+            } else {
+                weBridge.pauseWallpaper()
+            }
+            return
+        }
+
+        if videoWallpaperManager.isPaused(on: screen) {
+            videoWallpaperManager.resumeWallpaper(for: screen)
+            DynamicWallpaperAutoPauseManager.shared.reevaluateCurrentState()
+        } else {
+            videoWallpaperManager.pauseWallpaper(for: screen)
+        }
+    }
+
+    @objc private func perScreenToggleDynamicWallpaper(_ sender: NSMenuItem) {
+        guard let screen = sender.representedObject as? NSScreen else {
+            toggleDynamicWallpaper()
+            return
+        }
+
+        if weBridge.isControllingExternalEngine {
+            // 关闭外部引擎壁纸（全局）
+            weBridge.stopWallpaper()
+            return
+        }
+
+        if videoWallpaperManager.hasActiveWallpaper(on: screen) {
+            videoWallpaperManager.stopWallpaper(for: screen)
+        }
     }
 
     @objc private func togglePlayback() {

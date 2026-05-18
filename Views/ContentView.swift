@@ -263,83 +263,7 @@ struct ContentView: View {
                 Spacer()
             }
 
-            if let wallpaper = navigationState.selectedWallpaper {
-                WallpaperDetailSheet(wallpaper: wallpaper, viewModel: viewModel) {
-                    navigationState.selectedWallpaper = nil
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .transition(.asymmetric(
-                    insertion: .opacity.animation(.easeOut(duration: 0.18)),
-                    removal: .opacity.animation(.easeIn(duration: 0.12))
-                ))
-                .zIndex(300)
-            }
-
-            if let item = navigationState.selectedMedia {
-                MediaDetailSheet(item: item, viewModel: mediaViewModel) {
-                    navigationState.selectedMedia = nil
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .transition(.asymmetric(
-                    insertion: .opacity.animation(.easeOut(duration: 0.18)),
-                    removal: .opacity.animation(.easeIn(duration: 0.12))
-                ))
-                .zIndex(300)
-            }
-
-            if let anime = navigationState.selectedAnime {
-                AnimeDetailSheet(anime: anime, selectedAnime: navigationState.binding(for: \.selectedAnime))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .transition(.asymmetric(
-                        insertion: .opacity.animation(.easeOut(duration: 0.18)),
-                        removal: .opacity.animation(.easeIn(duration: 0.12))
-                    ))
-                    .zIndex(500)
-            }
-            
-            // 我的库中的详情页（在 ContentView 层级显示，确保覆盖 TopNavigationBar）
-            if let wallpaper = navigationState.librarySelectedWallpaper {
-                WallpaperDetailSheet(
-                    wallpaper: wallpaper,
-                    viewModel: viewModel,
-                    contextWallpapers: navigationState.libraryWallpaperContext.isEmpty ? nil : navigationState.libraryWallpaperContext
-                ) {
-                    navigationState.librarySelectedWallpaper = nil
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .transition(.asymmetric(
-                    insertion: .opacity.animation(.easeOut(duration: 0.18)),
-                    removal: .opacity.animation(.easeIn(duration: 0.12))
-                ))
-                .zIndex(300)
-            }
-            
-            if let item = navigationState.librarySelectedMedia {
-                MediaDetailSheet(
-                    item: item,
-                    viewModel: mediaViewModel,
-                    contextItems: navigationState.libraryMediaContext.isEmpty ? nil : navigationState.libraryMediaContext
-                ) {
-                    navigationState.librarySelectedMedia = nil
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .transition(.asymmetric(
-                    insertion: .opacity.animation(.easeOut(duration: 0.18)),
-                    removal: .opacity.animation(.easeIn(duration: 0.12))
-                ))
-                .zIndex(300)
-            }
-            
-            if let anime = navigationState.librarySelectedAnime {
-                AnimeDetailSheet(anime: anime, selectedAnime: navigationState.binding(for: \.librarySelectedAnime))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .ignoresSafeArea()
-                    .transition(.asymmetric(
-                        insertion: .opacity.animation(.easeOut(duration: 0.18)),
-                        removal: .opacity.animation(.easeIn(duration: 0.12))
-                    ))
-                    .zIndex(500)
-            }
+            detailOverlayContainer
 
             // 更新弹窗 - ZStack overlay，不创建新窗口避免双层红绿灯
             if showUpdateSheet, let release = updateRelease {
@@ -377,7 +301,7 @@ struct ContentView: View {
                     .padding(.bottom, 20)
             }
             .zIndex(400)
-            
+
             // 显示器选择弹窗覆盖层
             DisplaySelectorOverlay()
                 .zIndex(700)
@@ -405,7 +329,7 @@ struct ContentView: View {
                 try? await Task.sleep(nanoseconds: 200_000_000)
                 await mediaViewModel.initialLoadIfNeeded()
             }
-            
+
             // 延迟2秒后检查更新（自动检查，非强制，避免频繁触发）
             try? await Task.sleep(nanoseconds: 2 * 1_000_000_000)
             let checker = UpdateChecker.shared
@@ -428,6 +352,88 @@ struct ContentView: View {
     private func maximizeWindow() {
         guard let window = NSApp.mainWindow else { return }
         window.toggleFullScreen(nil)
+    }
+
+    // MARK: - 详情页 overlay 容器（分离求值，减少主 ZStack body 重新计算）
+    @ViewBuilder
+    private var detailOverlayContainer: some View {
+        if let wallpaper = navigationState.selectedWallpaper {
+            WallpaperDetailSheet(wallpaper: wallpaper, viewModel: viewModel) {
+                navigationState.selectedWallpaper = nil
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .transition(.asymmetric(
+                insertion: .opacity.animation(.easeOut(duration: 0.18)),
+                removal: .opacity.animation(.easeIn(duration: 0.12))
+            ))
+            .zIndex(300)
+        }
+
+        if let item = navigationState.selectedMedia {
+            MediaDetailSheet(item: item, viewModel: mediaViewModel) {
+                navigationState.selectedMedia = nil
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .transition(.asymmetric(
+                insertion: .opacity.animation(.easeOut(duration: 0.18)),
+                removal: .opacity.animation(.easeIn(duration: 0.12))
+            ))
+            .zIndex(300)
+        }
+
+        if let anime = navigationState.selectedAnime {
+            AnimeDetailSheet(anime: anime, selectedAnime: navigationState.binding(for: \.selectedAnime))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.asymmetric(
+                    insertion: .opacity.animation(.easeOut(duration: 0.18)),
+                    removal: .opacity.animation(.easeIn(duration: 0.12))
+                ))
+                .zIndex(500)
+        }
+
+        // 我的库中的详情页
+        if let wallpaper = navigationState.librarySelectedWallpaper {
+            WallpaperDetailSheet(
+                wallpaper: wallpaper,
+                viewModel: viewModel,
+                contextWallpapers: navigationState.libraryWallpaperContext.isEmpty ? nil : navigationState.libraryWallpaperContext
+            ) {
+                navigationState.librarySelectedWallpaper = nil
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .transition(.asymmetric(
+                insertion: .opacity.animation(.easeOut(duration: 0.18)),
+                removal: .opacity.animation(.easeIn(duration: 0.12))
+            ))
+            .zIndex(300)
+        }
+
+        if let item = navigationState.librarySelectedMedia {
+            MediaDetailSheet(
+                item: item,
+                viewModel: mediaViewModel,
+                contextItems: navigationState.libraryMediaContext.isEmpty ? nil : navigationState.libraryMediaContext
+            ) {
+                navigationState.librarySelectedMedia = nil
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .transition(.asymmetric(
+                insertion: .opacity.animation(.easeOut(duration: 0.18)),
+                removal: .opacity.animation(.easeIn(duration: 0.12))
+            ))
+            .zIndex(300)
+        }
+
+        if let anime = navigationState.librarySelectedAnime {
+            AnimeDetailSheet(anime: anime, selectedAnime: navigationState.binding(for: \.librarySelectedAnime))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea()
+                .transition(.asymmetric(
+                    insertion: .opacity.animation(.easeOut(duration: 0.18)),
+                    removal: .opacity.animation(.easeIn(duration: 0.12))
+                ))
+                .zIndex(500)
+        }
     }
 
     private func zoomWindow() {
@@ -1236,7 +1242,10 @@ struct MyMediaContentView: View {
     }
 
     private func importWallpapers() {
-        DownloadPathManager.shared.createDirectoryStructure()
+        guard DownloadPathManager.shared.createDirectoryStructure() else {
+            print("[ContentView] Failed to create download directory structure, import aborted")
+            return
+        }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
@@ -1247,6 +1256,7 @@ struct MyMediaContentView: View {
         guard panel.runModal() == .OK else { return }
 
         let destinationFolder = DownloadPathManager.shared.wallpapersFolderURL
+        print("[ContentView] Importing wallpapers to: \(destinationFolder.path)")
         let fileManager = FileManager.default
         var importedCount = 0
 
@@ -1273,7 +1283,10 @@ struct MyMediaContentView: View {
     }
 
     private func importMedia() async {
-        DownloadPathManager.shared.createDirectoryStructure()
+        guard DownloadPathManager.shared.createDirectoryStructure() else {
+            print("[ContentView] Failed to create download directory structure, import aborted")
+            return
+        }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
@@ -1284,6 +1297,7 @@ struct MyMediaContentView: View {
         guard panel.runModal() == .OK else { return }
 
         let destinationFolder = DownloadPathManager.shared.mediaFolderURL
+        print("[ContentView] Importing media to: \(destinationFolder.path)")
         let fileManager = FileManager.default
         var importedCount = 0
 
@@ -1426,7 +1440,10 @@ struct MyMediaContentView: View {
 
 
     private func importWorkshop() {
-        DownloadPathManager.shared.createDirectoryStructure()
+        guard DownloadPathManager.shared.createDirectoryStructure() else {
+            print("[ContentView] Failed to create download directory structure, workshop import aborted")
+            return
+        }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = true
@@ -1888,6 +1905,7 @@ private struct MyMediaVideoCard: View {
 // MARK: - iOS 丝滑风格下载进度弹窗宿主
 private struct DownloadProgressToastHost: View {
     @StateObject private var viewModel = DownloadToastViewModel()
+    @ObservedObject private var workshopService = WorkshopService.shared
     let onDismiss: (DownloadToastSnapshot) -> Void
     let onCancel: (DownloadToastSnapshot) -> Void
     let onRetry: (DownloadToastSnapshot) -> Void
@@ -1916,6 +1934,7 @@ private struct DownloadProgressToastHost: View {
                 DownloadProgressToast(
                     snapshot: snapshot,
                     activeTaskCount: viewModel.activeTaskCount,
+                    steamCMDQueuedCount: workshopService.steamCMDQueuedCount,
                     onDismiss: {
                         dismiss(snapshot)
                     },
@@ -2071,6 +2090,7 @@ private struct DownloadProgressToastHost: View {
 private struct DownloadProgressToast: View {
     let snapshot: DownloadToastSnapshot
     let activeTaskCount: Int
+    let steamCMDQueuedCount: Int
     let onDismiss: () -> Void
     let onCancel: () -> Void
     let onRetry: () -> Void
@@ -2117,13 +2137,19 @@ private struct DownloadProgressToast: View {
     }
 
     private var subtitle: String {
+        var parts: [String] = []
         if activeTaskCount > 1 && snapshot.isRunning {
             let base = snapshot.subtitle.isEmpty ? "\(activeTaskCount) \(t("items"))" : "\(snapshot.subtitle) · \(activeTaskCount) \(t("items"))"
-            return base
+            parts.append(base)
+        } else {
+            if !snapshot.subtitle.isEmpty { parts.append(snapshot.subtitle) }
+            if !snapshot.badgeText.isEmpty { parts.append(snapshot.badgeText) }
         }
-        if snapshot.subtitle.isEmpty { return snapshot.badgeText }
-        if snapshot.badgeText.isEmpty { return snapshot.subtitle }
-        return "\(snapshot.subtitle) · \(snapshot.badgeText)"
+        // SteamCMD 排队提示
+        if steamCMDQueuedCount > 0 {
+            parts.append(String(format: t("status.queued"), steamCMDQueuedCount))
+        }
+        return parts.isEmpty ? "" : parts.joined(separator: " · ")
     }
 
     private var isCompleted: Bool { snapshot.status == .completed }
@@ -2366,10 +2392,10 @@ private struct WallpaperSourceSwitchToast: View {
     /// 当 lastSwitchMessage 变化时触发显示
     private func checkForNewMessage() {
         guard sourceManager.lastSwitchMessage != nil else { return }
-        
+
         hideWorkItem?.cancel()
         isShowing = true
-        
+
         let workItem = DispatchWorkItem { [weak sourceManager] in
             withAnimation(.easeOut(duration: 0.25)) {
                 isShowing = false
@@ -2434,10 +2460,10 @@ private struct WorkshopSourceSwitchToast: View {
 
     private func checkForNewMessage() {
         guard sourceManager.lastSwitchMessage != nil else { return }
-        
+
         hideWorkItem?.cancel()
         isShowing = true
-        
+
         let workItem = DispatchWorkItem { [weak sourceManager] in
             withAnimation(.easeOut(duration: 0.25)) {
                 isShowing = false

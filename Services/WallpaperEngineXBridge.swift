@@ -30,15 +30,23 @@ final class WallpaperEngineXBridge: ObservableObject {
     private let targetScreenFingerprintsKey = "we_target_screen_fingerprints_v1"
 
     private init() {
-        // 监听 VideoWallpaperManager 恢复自己播放时，清空外部接管标记
+        // 监听 VideoWallpaperManager 恢复自己播放时，清空外部接管标记。
+        // 多屏场景下只清与当前屏重叠的部分，不误杀独立共存的 CLI 渲染。
         VideoWallpaperManager.shared.$currentVideoURL
             .receive(on: DispatchQueue.main)
             .sink { [weak self] url in
+                guard let self = self else { return }
                 if url != nil {
-                    self?.isControllingExternalEngine = false
-                    self?.isExternalPaused = false
-                    self?.targetScreenIDs.removeAll()
-                    self?.targetScreenFingerprints.removeAll()
+                    let nativeScreenIDs = Set(VideoWallpaperManager.shared.activeScreens.map(\.wallpaperScreenIdentifier))
+                    let cliScreenIDs = self.targetScreenIDs
+                    let overlap = cliScreenIDs.intersection(nativeScreenIDs)
+                    // 只有本机视频和 CLI 管理了相同屏幕时才清 CLI 状态
+                    if cliScreenIDs.isEmpty || !overlap.isEmpty {
+                        self.isControllingExternalEngine = false
+                        self.isExternalPaused = false
+                        self.targetScreenIDs.removeAll()
+                        self.targetScreenFingerprints.removeAll()
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -59,7 +67,14 @@ final class WallpaperEngineXBridge: ObservableObject {
 
     func setWallpaper(path: String, posterURL: URL? = nil, targetScreens: [NSScreen]? = nil) throws {
         // 只停本机视频层；切勿调用 VideoWallpaperManager.stopWallpaper()（会恢复静态桌面，干扰后续 CLI set）。
-        VideoWallpaperManager.shared.stopNativeVideoWallpaperOnly()
+        // 多屏场景下只停目标屏幕，不影响其他屏正在播放的本机视频。
+        if let screens = targetScreens, !screens.isEmpty {
+            for screen in screens {
+                VideoWallpaperManager.shared.stopNativeVideoWallpaperOnly(for: screen)
+            }
+        } else {
+            VideoWallpaperManager.shared.stopNativeVideoWallpaperOnly()
+        }
 
         // 每次应用 CLI 壁纸：先 stop 销毁上一轮 daemon/会话，再 set 重建，避免状态残留。
         try? executeCLI(arguments: ["stop"])
@@ -172,6 +187,12 @@ final class WallpaperEngineXBridge: ObservableObject {
         UserDefaults.standard.removeObject(forKey: controllingExternalKey)
         UserDefaults.standard.removeObject(forKey: targetScreenIDsKey)
         UserDefaults.standard.removeObject(forKey: targetScreenFingerprintsKey)
+    }
+
+    /// 检查 CLI 是否正在管理指定屏幕
+    func isManaging(screen: NSScreen) -> Bool {
+        targetScreenIDs.contains(screen.wallpaperScreenIdentifier) ||
+        targetScreenFingerprints.contains(screen.wallpaperScreenFingerprint)
     }
 
     /// 批量更新持久化状态中的壁纸路径（目录迁移后调用）

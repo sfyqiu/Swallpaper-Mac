@@ -59,7 +59,7 @@ struct WaifuXApp {
     static func main() {
         // 配置 Kingfisher（高性能图片加载）
         configureKingfisher()
-        
+
         // 配置全局 URLCache
         let cache = makeSharedURLCache()
         URLCache.shared = cache
@@ -73,17 +73,17 @@ struct WaifuXApp {
         app.delegate = delegate
         app.run()
     }
-    
+
     /// 配置 Kingfisher 高性能图片加载
     private static func configureKingfisher() {
         // 内存缓存配置 - 降低到 50MB/80张，减少内存占用
         ImageCache.default.memoryStorage.config.totalCostLimit = 50 * 1024 * 1024 // 50MB
         ImageCache.default.memoryStorage.config.countLimit = 80
-        
+
         // 磁盘缓存配置
         ImageCache.default.diskStorage.config.sizeLimit = 500 * 1024 * 1024 // 500MB
         ImageCache.default.diskStorage.config.expiration = .days(7)
-        
+
         // 下载配置
         let downloader = KingfisherManager.shared.downloader
         let configuration = downloader.sessionConfiguration
@@ -103,7 +103,7 @@ struct WaifuXApp {
                 return request
             })
         ]
-        
+
         // 设置内存压力处理（使用 DispatchSource）
         #if os(macOS)
         let source = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .global(qos: .utility))
@@ -176,7 +176,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var settingsWindowController: NSWindowController?
     /// 窗口隐藏后延迟释放视图树的任务，用于回收 IOSurface / CoreAnimation 等系统图形缓存
     private var delayedReleaseTask: Task<Void, Never>?
-    
+
     // MARK: - 窗口尺寸（唯一真实来源，全局统一）
     /// 最小允许的窗口大小
     private static let minimumWindowSize = NSSize(width: 1150, height: 720)
@@ -247,6 +247,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window?.title = "WaifuX"
         window?.titlebarAppearsTransparent = true
         window?.titleVisibility = .hidden
+        if #available(macOS 15.0, *) {
+            window?.titlebarSeparatorStyle = .none
+        }
 
         // 隐藏系统红绿灯（使用自定义 CustomWindowControls）
         window?.standardWindowButton(.closeButton)?.isHidden = true
@@ -273,7 +276,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // ⚠️ 关键：立即显示窗口，不要等待
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        
+
         // ⚠️ 关键：让出主线程，让 SwiftUI 完成首次布局渲染
         // 所有数据恢复在下一个 run loop 异步执行
         DispatchQueue.main.async { [weak self] in
@@ -289,32 +292,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         // 注：更新检查已移到 ContentView 中处理
     }
-    
+
     // MARK: - 异步恢复所有数据（在窗口显示后执行，避免阻塞主线程）
     private func restoreAllDataAsync() {
         // ⚠️ 关键：分帧执行，每批数据恢复之间让出时间给主线程渲染 UI
-        
+
         // 第1帧：基础设置
         DispatchQueue.main.async { [weak self] in
             LocalizationService.shared.restoreSavedSettings()
             ThemeManager.shared.restoreSavedSettings()
-            
+
             // 第2帧：权限和库数据
             DispatchQueue.main.async {
                 DownloadPathManager.shared.migrateLegacyCustomFolderPreferenceIfNeeded()
                 WorkshopSourceManager.shared.refreshStoredSteamCredentials()
                 WallpaperLibraryService.shared.restoreSavedData()
                 LibraryFolderStore.shared.restoreSavedData()
-                
+
                 // 第3帧：媒体库
                 DispatchQueue.main.async {
                     MediaLibraryService.shared.restoreSavedData()
-                    
+
                     // 第4帧：动漫数据
                     DispatchQueue.main.async {
                         AnimeFavoriteStore.shared.restoreSavedData()
                         AnimeProgressStore.shared.restoreSavedData()
-                        
+
                         // 第4.5帧：恢复未完成迁移 + 修复孤儿路径
                         DispatchQueue.main.async {
                             Task {
@@ -322,38 +325,38 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                 await DirectoryMigrationService.shared.repairOrphanedPathsIfNeeded()
                             }
                         }
-                        
+
                         // 第5帧：播放缓存和任务
                         DispatchQueue.main.async {
                             PlaybackProgressCache.shared.restoreSavedData()
                             DownloadTaskService.shared.restoreSavedTasks()
                             WallpaperSchedulerService.shared.restoreSavedConfig()
-                            
+
                             // 恢复动态壁纸（如果用户之前设置了）
                             VideoWallpaperManager.shared.restoreIfNeeded()
                             if !VideoWallpaperManager.shared.isVideoWallpaperActive {
                                 WallpaperEngineXBridge.shared.restoreIfNeeded()
                             }
-                            
+
                             // 恢复动态壁纸自动暂停设置
                             DynamicWallpaperAutoPauseManager.shared.restoreSettings()
 
                             // 初始化静态壁纸颗粒蒙层（独立于壁纸设置，开关实时生效）
                             StaticWallpaperGrainManager.shared.updateOverlay()
-                            
+
                             // 第6帧：其他状态
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                 UpdateChecker.shared.restoreCachedState()
-                                
+
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                     WallpaperViewModel().restoreAPIKeyState()
                                     WallpaperSourceManager.shared.restoreState()
-                                    
+
                                     // 应用启动时的数据源选择（ping Google 决策）
                                     Task {
                                         await WallpaperSourceManager.shared.performStartupSourceSelection()
                                     }
-                                    
+
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                                         let vm = SettingsViewModel()
                                         vm.restoreSavedSettings()
@@ -421,7 +424,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             // ⚠️ 先设置 contentView，再恢复保存的窗口尺寸
             let hostingView = EdgeToEdgeHostingView(rootView: contentView)
             window?.contentView = hostingView
-            
+
             // 恢复保存的窗口尺寸
             window?.setFrameAutosaveName(WindowAutosaveName.mainWindow)
 
@@ -442,7 +445,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             if window.isMiniaturized {
                 window.deminiaturize(nil)
             }
-            
+
             // macOS 14+ 需要延迟一点时间来确保窗口正确显示
             if #available(macOS 14.0, *) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
@@ -660,7 +663,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     // MARK: - 设置窗口
-    
+
     @objc func showSettingsWindow(_ sender: Any?) {
         // 如果窗口已存在，直接显示（最快路径）
         if let settingsWindow = settingsWindowController?.window {
@@ -680,12 +683,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 vm.restoreSavedSettings()
                 self.settingsViewModel = vm
             }
-            
+
             // 创建并显示窗口
             self.createAndShowSettingsWindow()
         }
     }
-    
+
     private func createAndShowSettingsWindow() {
         let settingsWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 680, height: 520),
@@ -707,7 +710,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settingsWindow.isReleasedWhenClosed = false
         centerWindow(settingsWindow, relativeTo: window)
         settingsWindow.tabbingMode = .disallowed
-        
+
         settingsWindow.contentView = EdgeToEdgeHostingView(
             rootView: SettingsView(viewModel: settingsViewModel!)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -720,7 +723,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settingsWindow.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
     }
-    
+
     private func centerWindow(_ window: NSWindow, relativeTo parentWindow: NSWindow?) {
         if let parentWindow = parentWindow, parentWindow.isVisible {
             // 在主窗口中央显示
@@ -751,7 +754,7 @@ extension AppDelegate {
     private func hasSavedWindowFrame() -> Bool {
         return Self.savedWindowFrame() != nil
     }
-    
+
     /// 获取保存的窗口大小（如果有）
     private static func savedWindowFrame() -> NSSize? {
         let key = "NSWindow Frame \(WindowAutosaveName.mainWindow)"
@@ -773,13 +776,13 @@ extension AppDelegate {
 struct AutoUpdateSheet: View {
     @ObservedObject var updateChecker = UpdateChecker.shared
     @ObservedObject var updateManager = UpdateManager.shared
-    
+
     let currentVersion: String
     let latestVersion: String
     let release: GitHubRelease
     let commit: GitHubCommit?
     let onClose: () -> Void
-    
+
     var body: some View {
         // 半透明遮罩
         Color.black.opacity(0.5)
@@ -792,12 +795,12 @@ struct AutoUpdateSheet: View {
                         .font(.system(size: 44))
                         .foregroundStyle(Color.accentColor)
                         .modifier(BounceSymbolModifier())
-                    
+
                     // 标题
                     Text(t("newVersionFound"))
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.96))
-                    
+
                     // 版本信息
                     HStack(spacing: 16) {
                         // 当前版本
@@ -815,12 +818,12 @@ struct AutoUpdateSheet: View {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .fill(.white.opacity(0.05))
                         )
-                        
+
                         // 箭头
                         Image(systemName: "arrow.right")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.3))
-                        
+
                         // 最新版本
                         VStack(spacing: 4) {
                             Text(t("latestVersion"))
@@ -837,20 +840,20 @@ struct AutoUpdateSheet: View {
                                 .fill(Color.accentColor.opacity(0.08))
                         )
                     }
-                    
+
                     // 更新内容
                     if let commit = commit {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(t("updateContent"))
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(.white.opacity(0.45))
-                            
+
                             Text(commit.shortMessage)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(.white.opacity(0.88))
                                 .lineLimit(3)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            
+
                             Text(commit.shortSHA)
                                 .font(.system(size: 10, design: .monospaced))
                                 .foregroundStyle(.white.opacity(0.35))
@@ -862,7 +865,7 @@ struct AutoUpdateSheet: View {
                                 .fill(.white.opacity(0.04))
                         )
                     }
-                    
+
                     // 下载进度
                     if updateManager.state.isDownloading || updateManager.state.isInstalling {
                         VStack(spacing: 8) {
@@ -872,7 +875,7 @@ struct AutoUpdateSheet: View {
                                 tintColor: Color.accentColor,
                                 trackOpacity: 0.12
                             )
-                            
+
                             HStack {
                                 Text(statusText)
                                     .font(.system(size: 12, weight: .medium))
@@ -885,9 +888,9 @@ struct AutoUpdateSheet: View {
                         }
                         .padding(.top, 4)
                     }
-                    
+
                     Spacer(minLength: 0)
-                    
+
                     // 按钮行
                     HStack(spacing: 12) {
                         // 取消/关闭按钮
@@ -909,7 +912,7 @@ struct AutoUpdateSheet: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(updateManager.state.isInstalling)
-                        
+
                         // 主操作按钮
                         if !updateManager.state.isDownloaded && !updateManager.state.isInstalling {
                             Button {
@@ -965,9 +968,9 @@ struct AutoUpdateSheet: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
     }
-    
+
     // MARK: - 辅助属性
-    
+
     private var statusText: String {
         switch updateManager.state {
         case .downloading:
@@ -978,7 +981,7 @@ struct AutoUpdateSheet: View {
             return ""
         }
     }
-    
+
     private var buttonText: String {
         switch updateManager.state {
         case .downloading:
@@ -989,7 +992,7 @@ struct AutoUpdateSheet: View {
             return t("later")
         }
     }
-    
+
     private var downloadButtonText: String {
         switch updateManager.state {
         case .downloading:

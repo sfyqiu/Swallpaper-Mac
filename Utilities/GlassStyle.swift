@@ -93,7 +93,7 @@ struct LiquidGlassBackground: View {
                     )
                 )
                 .frame(width: 600, height: 600)
-                .blur(radius: 40)
+                .blur(radius: 32)
                 .offset(x: -200, y: -150)
                 .offset(y: animateGlow ? -15 : 15)
 
@@ -111,7 +111,7 @@ struct LiquidGlassBackground: View {
                     )
                 )
                 .frame(width: 500, height: 500)
-                .blur(radius: 35)
+                .blur(radius: 28)
                 .offset(x: 250, y: 200)
                 .offset(y: animateGlow ? 20 : -20)
 
@@ -129,7 +129,7 @@ struct LiquidGlassBackground: View {
                     )
                 )
                 .frame(width: 400, height: 400)
-                .blur(radius: 30)
+                .blur(radius: 24)
                 .offset(x: 0, y: 100)
                 .offset(y: animateGlow ? -10 : 10)
         }
@@ -305,30 +305,27 @@ struct LiquidGlassDropdownButton<Content: View>: View {
             .padding(.horizontal, GlassStyle.Padding.standard)
             .padding(.vertical, GlassStyle.Padding.small)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.capsule, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.capsule, style: .continuous)
-                        .fill(LiquidGlassColors.glassWhiteSubtle)
-                }
+                RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.capsule, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.85)
             )
             .overlay(
-                ZStack {
-                    RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.capsule, style: .continuous)
-                        .stroke(LiquidGlassColors.glassBorder, lineWidth: 1)
-                    RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.capsule, style: .continuous)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.3),
-                                    Color.white.opacity(0.1)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ),
-                            lineWidth: 0.5
-                        )
-                }
+                RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.capsule, style: .continuous)
+                    .stroke(LiquidGlassColors.glassBorder, lineWidth: 1)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.capsule, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.3),
+                                        Color.white.opacity(0.1)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 0.5
+                            )
+                    )
             )
         }
         .buttonStyle(.plain)
@@ -348,12 +345,9 @@ struct LiquidGlassDropdownContent<Content: View>: View {
             content()
         }
         .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.medium, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.medium, style: .continuous)
-                    .fill(LiquidGlassColors.glassWhiteSubtle)
-            }
+            RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.medium, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .opacity(0.85)
         )
         .clipShape(RoundedRectangle(cornerRadius: GlassStyle.CornerRadius.medium, style: .continuous))
         .overlay(

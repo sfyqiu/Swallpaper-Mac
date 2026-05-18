@@ -43,6 +43,14 @@ struct WallpaperDetailSheet: View {
     /// 分享面板相对定位用（与分享按钮同几何的锚定 `NSView`）
     @State private var sharePickerAnchorView: NSView?
     @State private var showCopyLinkToast = false
+    @State private var showMoreOptionsPopover = false
+
+    // MARK: - 作者壁纸弹窗相关
+    @State private var showAuthorSheet = false
+    @State private var authorWallpapers: [Wallpaper] = []
+    @State private var isLoadingAuthorWallpapers = false
+    @State private var authorWallpapersPage = 1
+    @State private var hasMoreAuthorWallpapers = true
 
     private var prefetchNamespace: String {
         "wallpaper-detail-\(initialWallpaper.id)"
@@ -203,6 +211,7 @@ struct WallpaperDetailSheet: View {
                         .padding(.bottom, 28)
                     }
                 }
+
             }
             .overlay(alignment: .bottom) {
                 if showCopyLinkToast {
@@ -237,6 +246,9 @@ struct WallpaperDetailSheet: View {
         } message: {
             Text(t("deleteConfirmMessage"))
         }
+        .overlay {
+            authorSheetOverlay
+        }
         .navigationBarBackButtonHidden(true)
         .onAppear {
             AppLogger.info(.wallpaper, "详情页 onAppear",
@@ -247,6 +259,10 @@ struct WallpaperDetailSheet: View {
             }
             setupNextItemDataSource()
             setupKeyboardMonitor()
+            // 非本地壁纸：从详情 API 获取完整数据（含 uploader）
+            if !isLocalFile {
+                fetchDetailAndUpdateUploader()
+            }
         }
         .onChange(of: viewModel.wallpapers) { _, newWallpapers in
             // 本地上下文模式下不跟随线上列表变化
@@ -519,21 +535,13 @@ struct WallpaperDetailSheet: View {
                         VStack(spacing: 8) {
                             HStack(spacing: 0) {
                                 ForEach(Array(metadataItems.prefix(2).enumerated()), id: \.offset) { index, item in
-                                    DetailMetaCapsule(
-                                        label: item.label,
-                                        value: item.value,
-                                        isLast: index == metadataItems.prefix(2).count - 1
-                                    )
+                                    authorAwareCapsule(label: item.label, value: item.value, isLast: index == metadataItems.prefix(2).count - 1)
                                 }
                             }
 
                             HStack(spacing: 0) {
                                 ForEach(Array(metadataItems.dropFirst(2).enumerated()), id: \.offset) { index, item in
-                                    DetailMetaCapsule(
-                                        label: item.label,
-                                        value: item.value,
-                                        isLast: index == metadataItems.dropFirst(2).count - 1
-                                    )
+                                    authorAwareCapsule(label: item.label, value: item.value, isLast: index == metadataItems.dropFirst(2).count - 1)
                                 }
                             }
                         }
@@ -627,34 +635,22 @@ struct WallpaperDetailSheet: View {
                 .buttonStyle(.plain)
                 .disabled(isDownloading || isAlreadyDownloaded)
 
-                if isAlreadyDownloaded {
-                    Button {
-                        viewModel.shareDownloadedWallpaperIfAvailable(wallpaper, anchorView: sharePickerAnchorView)
-                    } label: {
-                        DetailSheetCircleIconLabel(systemName: "square.and.arrow.up")
-                            .detailGlassCircleChrome()
-                    }
-                    .buttonStyle(.plain)
-                    .help(t("shareLocalFile"))
-                    .background {
-                        SharePickerAnchorReader { sharePickerAnchorView = $0 }
-                    }
-                }
-
                 Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(wallpaper.url, forType: .string)
-                    showCopyLinkToast = true
-                    Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        showCopyLinkToast = false
-                    }
+                    showMoreOptionsPopover = true
                 } label: {
-                    DetailSheetCircleIconLabel(systemName: "link")
+                    DetailSheetCircleIconLabel(systemName: "ellipsis")
                         .detailGlassCircleChrome()
                 }
                 .buttonStyle(.plain)
-                .help("复制链接")
+                .help("更多选项")
+                .background(
+                    SharePickerAnchorReader { anchor in
+                        sharePickerAnchorView = anchor
+                    }
+                )
+                .popover(isPresented: $showMoreOptionsPopover, arrowEdge: .bottom) {
+                    morePopoverMenuContent
+                }
 
                 dividerLine
                     .frame(width: 80)
@@ -663,6 +659,75 @@ struct WallpaperDetailSheet: View {
         .frame(maxWidth: .infinity)
         .padding(.top, 12)
         .glassContainer(spacing: 16)
+    }
+
+    // MARK: - 液态玻璃更多菜单
+    @ViewBuilder
+    private var morePopoverMenuContent: some View {
+        VStack(spacing: 0) {
+            if isAlreadyDownloaded {
+                Button {
+                    // 不关闭菜单，保持锚点有效
+                    viewModel.shareDownloadedWallpaperIfAvailable(wallpaper, anchorView: sharePickerAnchorView)
+                } label: {
+                    HStack {
+                        Image(systemName: "square.and.arrow.up")
+                        Text(t("shareLocalFile"))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .background(
+                    Rectangle()
+                        .fill(Color.white.opacity(0.15))
+                        .frame(height: 1),
+                    alignment: .bottom
+                )
+
+                Button {
+                    showMoreOptionsPopover = false
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(wallpaper.url, forType: .string)
+                    showCopyLinkToast = true
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        showCopyLinkToast = false
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "link")
+                        Text("复制链接")
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button {
+                    showMoreOptionsPopover = false
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(wallpaper.url, forType: .string)
+                    showCopyLinkToast = true
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        showCopyLinkToast = false
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "link")
+                        Text("复制链接")
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(width: 192)
     }
 
     // 横线分隔符
@@ -712,7 +777,19 @@ struct WallpaperDetailSheet: View {
 
             infoSection(title: t("info")) {
                 compactFact(label: "ID", value: wallpaper.id.uppercased())
-                compactFact(label: t("author"), value: uploaderLabel)
+                if let _ = wallpaper.uploader {
+                    Button {
+                        openAuthorSheet()
+                    } label: {
+                        compactFact(label: t("author"), value: uploaderLabel)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { hovering in
+                        if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                    }
+                } else {
+                    compactFact(label: t("author"), value: uploaderLabel)
+                }
                 compactFact(label: t("category"), value: wallpaper.categoryDisplayName)
                 compactFact(label: t("source"), value: sourceLabel)
                 compactFact(label: t("created"), value: createdDateLabel)
@@ -898,9 +975,12 @@ struct WallpaperDetailSheet: View {
 
 
     private var metadataItems: [(label: String, value: String)] {
-        var items: [(String, String)] = [
-            (t("author"), uploaderLabel)
-        ]
+        var items: [(String, String)] = []
+
+        // 仅在存在上传者信息时显示作者
+        if wallpaper.uploader != nil {
+            items.append((t("author"), uploaderLabel))
+        }
 
         if let fileSize = wallpaper.fileSize {
             items.append((t("size"), formatFileSize(fileSize)))
@@ -1015,11 +1095,83 @@ struct WallpaperDetailSheet: View {
 
     private var metadataCapsules: some View {
         ForEach(Array(metadataItems.enumerated()), id: \.offset) { index, item in
+            authorAwareCapsule(label: item.label, value: item.value, isLast: index == metadataItems.count - 1)
+        }
+    }
+
+    /// 统一的胶囊渲染：如果是作者且可点击则包装为 Button
+    @ViewBuilder
+    private func authorAwareCapsule(label: String, value: String, isLast: Bool) -> some View {
+        if label == t("author"), let _ = wallpaper.uploader {
+            Button {
+                openAuthorSheet()
+            } label: {
+                DetailMetaCapsule(
+                    label: label,
+                    value: value,
+                    isLast: isLast
+                )
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+        } else {
             DetailMetaCapsule(
-                label: item.label,
-                value: item.value,
-                isLast: index == metadataItems.count - 1
+                label: label,
+                value: value,
+                isLast: isLast
             )
+        }
+    }
+
+    // MARK: - 壁纸详情 API 获取（补充 uploader 数据）
+
+    /// 调用 Wallhaven 详情 API 获取完整数据（含 uploader），更新当前壁纸
+    private func fetchDetailAndUpdateUploader() {
+        // 已有 uploader 则跳过
+        if wallpaper.uploader != nil { return }
+        let wallpaperID = wallpaper.id
+        Task {
+            do {
+                let detail = try await viewModel.fetchWallpaperDetail(byID: wallpaperID)
+                await MainActor.run {
+                    // 只替换 uploader 字段（其他字段保持搜索结果的即可）
+                    if detail.uploader != nil {
+                        var updated = resolvedWallpaper
+                        // 通过重新创建 Wallpaper 来更新 uploader（保持其他字段不变）
+                        let newWallpaper = Wallpaper(
+                            id: updated.id,
+                            url: updated.url,
+                            shortUrl: updated.shortUrl,
+                            views: updated.views,
+                            favorites: updated.favorites,
+                            downloads: updated.downloads,
+                            source: updated.source,
+                            purity: updated.purity,
+                            category: updated.category,
+                            dimensionX: updated.dimensionX,
+                            dimensionY: updated.dimensionY,
+                            resolution: updated.resolution,
+                            ratio: updated.ratio,
+                            fileSize: updated.fileSize,
+                            fileType: updated.fileType,
+                            createdAt: updated.createdAt,
+                            colors: updated.colors,
+                            path: updated.path,
+                            thumbs: updated.thumbs,
+                            tags: updated.tags,
+                            uploader: detail.uploader
+                        )
+                        resolvedWallpaper = newWallpaper
+                        AppLogger.info(.wallpaper, "详情 API 返回 uploader",
+                            metadata: ["username": detail.uploader?.username ?? "nil"])
+                    }
+                }
+            } catch {
+                AppLogger.warn(.wallpaper, "获取壁纸详情失败（不影响浏览）",
+                    metadata: ["wallpaperID": wallpaperID, "error": error.localizedDescription])
+            }
         }
     }
 
@@ -1336,6 +1488,112 @@ struct WallpaperDetailSheet: View {
             self.slideIncomingOffset = 0
             self.slideOutgoingOffset = 0
         }
+    }
+
+    // MARK: - 作者壁纸弹窗
+
+    @ViewBuilder
+    private var authorSheetOverlay: some View {
+        if showAuthorSheet, let uploader = wallpaper.uploader {
+            AuthorWallpaperSheet(
+                uploader: uploader,
+                wallpapers: authorWallpapers,
+                isLoading: isLoadingAuthorWallpapers,
+                onSelectWallpaper: { selectedWallpaper in
+                    navigateToAuthorWallpaper(selectedWallpaper)
+                },
+                onDismiss: {
+                    showAuthorSheet = false
+                    authorWallpapers = []
+                    authorWallpapersPage = 1
+                    hasMoreAuthorWallpapers = true
+                },
+                onLoadMore: {
+                    self.loadMoreAuthorWallpapers()
+                }
+            )
+            .transition(.identity)
+            .zIndex(100)
+        }
+    }
+
+    /// 打开作者壁纸弹窗，开始加载该作者的壁纸列表
+    private func openAuthorSheet() {
+        guard let uploader = wallpaper.uploader else { return }
+        showAuthorSheet = true
+        authorWallpapers = []
+        authorWallpapersPage = 1
+        hasMoreAuthorWallpapers = true
+        isLoadingAuthorWallpapers = true
+
+        Task {
+            do {
+                let results = try await viewModel.fetchWallpapersByAuthor(
+                    username: uploader.username,
+                    page: 1,
+                    limit: 20
+                )
+                await MainActor.run {
+                    authorWallpapers = results
+                    hasMoreAuthorWallpapers = results.count >= 20
+                    isLoadingAuthorWallpapers = false
+                }
+            } catch {
+                AppLogger.error(.wallpaper, "加载作者壁纸失败",
+                    metadata: ["username": uploader.username, "error": error.localizedDescription])
+                await MainActor.run {
+                    isLoadingAuthorWallpapers = false
+                }
+            }
+        }
+    }
+
+    /// 加载更多作者壁纸（分页），防止重复触发
+    private func loadMoreAuthorWallpapers() {
+        guard let uploader = wallpaper.uploader, !isLoadingAuthorWallpapers, hasMoreAuthorWallpapers else { return }
+        isLoadingAuthorWallpapers = true
+        let nextPage = authorWallpapersPage + 1
+
+        Task {
+            do {
+                let results = try await viewModel.fetchWallpapersByAuthor(
+                    username: uploader.username,
+                    page: nextPage,
+                    limit: 20
+                )
+                await MainActor.run {
+                    authorWallpapers.append(contentsOf: results)
+                    authorWallpapersPage = nextPage
+                    hasMoreAuthorWallpapers = results.count >= 20
+                    isLoadingAuthorWallpapers = false
+                }
+            } catch {
+                AppLogger.error(.wallpaper, "加载更多作者壁纸失败",
+                    metadata: ["username": uploader.username, "page": nextPage, "error": error.localizedDescription])
+                await MainActor.run {
+                    isLoadingAuthorWallpapers = false
+                }
+            }
+        }
+    }
+
+    /// 从作者壁纸弹窗导航到壁纸详情（关闭弹窗，重新获取 uploader）
+    private func navigateToAuthorWallpaper(_ wallpaper: Wallpaper) {
+        // 关闭作者弹窗
+        showAuthorSheet = false
+        authorWallpapers = []
+        authorWallpapersPage = 1
+        hasMoreAuthorWallpapers = true
+
+        // 导航到该壁纸
+        if let index = viewModel.wallpapers.firstIndex(where: { $0.id == wallpaper.id }) {
+            navigateToIndex(index)
+        } else {
+            prepareSlideTransition(direction: .down)
+            reloadWallpaper(wallpaper)
+        }
+        // 重新获取 uploader 数据（新壁纸来自搜索列表，不含 uploader）
+        fetchDetailAndUpdateUploader()
     }
 }
 

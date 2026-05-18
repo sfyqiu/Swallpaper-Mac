@@ -9,6 +9,7 @@ struct MyLibraryContentView: View {
     @StateObject private var downloadTaskViewModel = DownloadTaskViewModel()
     @ObservedObject private var animeFavoriteStore = AnimeFavoriteStore.shared
     @ObservedObject private var folderStore = LibraryFolderStore.shared
+    @ObservedObject private var arcSettings = ArcBackgroundSettings.shared
 
     // 分类筛选
     @State private var selectedContentType: ContentType = .wallpaper
@@ -97,13 +98,18 @@ struct MyLibraryContentView: View {
                     .allowsHitTesting(true)
             }
 
-            SpotlightBackground(
-                lightColor: Color.white.opacity(0.95),
-                backgroundColor: Color.black,
-                intensity: 0.9,
-                spread: 0.4
-            )
-            .ignoresSafeArea()
+            if arcSettings.compactMode {
+                arcSettings.compactBackground
+                    .ignoresSafeArea()
+            } else {
+                SpotlightBackground(
+                    lightColor: Color.white.opacity(0.95),
+                    backgroundColor: Color.black,
+                    intensity: 0.9,
+                    spread: 0.4
+                )
+                .ignoresSafeArea()
+            }
 
             GeometryReader { geometry in
                 let contentWidth = max(0, geometry.size.width - 56)
@@ -1391,7 +1397,10 @@ struct MyLibraryContentView: View {
     }
 
     private func importWallpapers() {
-        DownloadPathManager.shared.createDirectoryStructure()
+        guard DownloadPathManager.shared.createDirectoryStructure() else {
+            print("[MyLibrary] Failed to create download directory structure, import aborted")
+            return
+        }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
@@ -1402,6 +1411,7 @@ struct MyLibraryContentView: View {
         guard panel.runModal() == .OK else { return }
 
         let destinationFolder = DownloadPathManager.shared.wallpapersFolderURL
+        print("[MyLibrary] Importing wallpapers to: \(destinationFolder.path)")
         let fileManager = FileManager.default
         var importedCount = 0
 
@@ -1428,7 +1438,10 @@ struct MyLibraryContentView: View {
     }
 
     private func importMedia() async {
-        DownloadPathManager.shared.createDirectoryStructure()
+        guard DownloadPathManager.shared.createDirectoryStructure() else {
+            print("[MyLibrary] Failed to create download directory structure, import aborted")
+            return
+        }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
@@ -1439,6 +1452,7 @@ struct MyLibraryContentView: View {
         guard panel.runModal() == .OK else { return }
 
         let destinationFolder = DownloadPathManager.shared.mediaFolderURL
+        print("[MyLibrary] Importing media to: \(destinationFolder.path)")
         let fileManager = FileManager.default
         var importedCount = 0
 
@@ -1465,7 +1479,10 @@ struct MyLibraryContentView: View {
     }
 
     private func importWorkshop() {
-        DownloadPathManager.shared.createDirectoryStructure()
+        guard DownloadPathManager.shared.createDirectoryStructure() else {
+            print("[MyLibrary] Failed to create download directory structure, workshop import aborted")
+            return
+        }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = true

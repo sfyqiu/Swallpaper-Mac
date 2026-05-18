@@ -9,27 +9,27 @@ import SwiftUI
 @MainActor
 class WorkshopSourceManager: ObservableObject {
     static let shared = WorkshopSourceManager()
-    
+
     // MARK: - 数据源类型
-    
+
     enum SourceType: String, CaseIterable {
         case motionBG = "motionbg"
         case wallpaperEngine = "wallpaper_engine"
-        
+
         var displayName: String {
             switch self {
             case .motionBG: return "MotionBG"
             case .wallpaperEngine: return t("wallpaperEngine")
             }
         }
-        
+
         var subtitle: String {
             switch self {
             case .motionBG: return "在线视频壁纸"
             case .wallpaperEngine: return "Steam Workshop"
             }
         }
-        
+
         /// 图标
         var icon: String {
             switch self {
@@ -37,7 +37,7 @@ class WorkshopSourceManager: ObservableObject {
             case .wallpaperEngine: return "gearshape.fill"
             }
         }
-        
+
         /// 是否支持搜索
         var supportsSearch: Bool {
             switch self {
@@ -45,7 +45,7 @@ class WorkshopSourceManager: ObservableObject {
             case .wallpaperEngine: return true
             }
         }
-        
+
         /// 是否支持分类浏览
         var supportsCategories: Bool {
             switch self {
@@ -53,7 +53,7 @@ class WorkshopSourceManager: ObservableObject {
             case .wallpaperEngine: return true
             }
         }
-        
+
         /// 是否需要 Steam 登录
         var requiresSteamAuth: Bool {
             switch self {
@@ -61,7 +61,7 @@ class WorkshopSourceManager: ObservableObject {
             case .wallpaperEngine: return false
             }
         }
-        
+
         /// 是否支持预渲染
         var supportsPrerender: Bool {
             switch self {
@@ -69,7 +69,7 @@ class WorkshopSourceManager: ObservableObject {
             case .wallpaperEngine: return true
             }
         }
-        
+
         /// 强调色
         var accentColor: String {
             switch self {
@@ -80,16 +80,16 @@ class WorkshopSourceManager: ObservableObject {
     }
 
     // MARK: - Workshop 类型筛选
-    
+
     enum WorkshopTypeFilter: String, CaseIterable, Identifiable {
         case all = "all"
         case scene = "Scene"
         case video = "Video"
         case web = "Web"
         case application = "Application"
-        
+
         var id: String { rawValue }
-        
+
         var displayName: String {
             switch self {
             case .all: return t("workshop.type.all")
@@ -99,7 +99,7 @@ class WorkshopSourceManager: ObservableObject {
             case .application: return t("workshop.type.application")
             }
         }
-        
+
         var icon: String {
             switch self {
             case .all: return "square.grid.2x2"
@@ -109,7 +109,7 @@ class WorkshopSourceManager: ObservableObject {
             case .application: return "app.fill"
             }
         }
-        
+
         var accentColors: [String] {
             switch self {
             case .all: return ["FF9B58", "F54E42"]
@@ -247,7 +247,7 @@ class WorkshopSourceManager: ObservableObject {
         }
         return nil
     }
-    
+
     /// 返回 SteamCMD 可执行文件路径
     /// 首次调用时会将 Bundle 中的 steamcmd 复制到 Application Support，
     /// 避免重新编译 App 时覆盖掉 steamcmd 的自更新文件和登录缓存。
@@ -384,7 +384,7 @@ class WorkshopSourceManager: ObservableObject {
     }
 
     // MARK: - Workshop 内容级别（与壁纸列表 Purity 对齐）
-    
+
     enum WorkshopContentLevel: String, CaseIterable, Identifiable {
         case everyone = "Everyone"
         case questionable = "Questionable"
@@ -415,7 +415,7 @@ class WorkshopSourceManager: ObservableObject {
             case .mature: return LiquidGlassColors.primaryPink
             }
         }
-        
+
         var accentHex: String {
             switch self {
             case .everyone: return "43C463"
@@ -426,7 +426,7 @@ class WorkshopSourceManager: ObservableObject {
     }
 
     // MARK: - Workshop 标签
-    
+
     /// Wallpaper Engine Workshop 常用标签（基于 Steam 文档实际分类）
     struct WorkshopTag: Identifiable, Hashable {
         let id: String
@@ -434,7 +434,7 @@ class WorkshopSourceManager: ObservableObject {
         let translationKey: String
         let icon: String
         let accentColors: [String]
-        
+
         var displayName: String { t(translationKey) }
 
         static let allTags: [WorkshopTag] = [
@@ -471,7 +471,7 @@ class WorkshopSourceManager: ObservableObject {
     }
 
     // MARK: - Workshop 分辨率筛选
-    
+
     /// Steam Workshop 分辨率选项（对应 requiredtags[] 标签格式）
     struct WorkshopResolution: Identifiable, Hashable {
         let id: String
@@ -479,43 +479,48 @@ class WorkshopSourceManager: ObservableObject {
         let display: String
         /// Steam Workshop 标签值，如 "1920 x 1080"
         let tagValue: String
-        
+
         static let all: [WorkshopResolution] = [
-            WorkshopResolution(id: "3840x2160", display: "3840 × 2160 (4K UHD)", tagValue: "3840 x 2160"),
-            WorkshopResolution(id: "2560x1440", display: "2560 × 1440 (2K QHD)", tagValue: "2560 x 1440"),
-            WorkshopResolution(id: "3440x1440", display: "3440 × 1440 (UW-QHD)", tagValue: "3440 x 1440"),
-            WorkshopResolution(id: "1920x1080", display: "1920 × 1080 (FHD)", tagValue: "1920 x 1080"),
-            WorkshopResolution(id: "2560x1080", display: "2560 × 1080 (UW-FHD)", tagValue: "2560 x 1080"),
-            WorkshopResolution(id: "1280x720",  display: "1280 × 720 (HD)",    tagValue: "1280 x 720"),
-            WorkshopResolution(id: "7680x4320", display: "7680 × 4320 (8K UHD)", tagValue: "7680 x 4320"),
-            WorkshopResolution(id: "5120x2880", display: "5120 × 2880 (5K)",     tagValue: "5120 x 2880"),
+            WorkshopResolution(id: "7680x4320", display: "7680 × 4320 (8K UHD)",  tagValue: "7680 x 4320"),
+            WorkshopResolution(id: "5120x2880", display: "5120 × 2880 (5K)",      tagValue: "5120 x 2880"),
+            WorkshopResolution(id: "3840x2160", display: "3840 × 2160 (4K UHD)",  tagValue: "3840 x 2160"),
+            WorkshopResolution(id: "2560x1440", display: "2560 × 1440 (2K QHD)",  tagValue: "2560 x 1440"),
+            WorkshopResolution(id: "3440x1440", display: "3440 × 1440 (UW-QHD)",  tagValue: "3440 x 1440"),
+            WorkshopResolution(id: "1920x1080", display: "1920 × 1080 (FHD)",     tagValue: "1920 x 1080"),
+            WorkshopResolution(id: "2560x1080", display: "2560 × 1080 (UW-FHD)",  tagValue: "2560 x 1080"),
+            WorkshopResolution(id: "1280x720",  display: "1280 × 720 (HD)",       tagValue: "1280 x 720"),
             WorkshopResolution(id: "5120x1440", display: "5120 × 1440 (超宽)",    tagValue: "5120 x 1440"),
+            // ── 竖屏 Portrait ──
+            WorkshopResolution(id: "2160x3840", display: "2160 × 3840 (竖屏 4K)", tagValue: "Portrait 2160 x 3840"),
+            WorkshopResolution(id: "1440x2560", display: "1440 × 2560 (竖屏 2K)", tagValue: "Portrait 1440 x 2560"),
+            WorkshopResolution(id: "1080x1920", display: "1080 × 1920 (竖屏)",    tagValue: "Portrait 1080 x 1920"),
+            WorkshopResolution(id: "720x1280",  display: "720 × 1280 (竖屏)",     tagValue: "Portrait 720 x 1280"),
         ]
     }
-    
+
     /// 获取所有可用分辨率
     var availableResolutions: [WorkshopResolution] {
         WorkshopResolution.all
     }
-    
+
     // MARK: - Published State
-    
+
     @Published private(set) var activeSource: SourceType
     @Published var lastSwitchMessage: String?
-    
+
     // MARK: - Storage Keys
-    
+
     private let selectedSourceKey = "workshop_selected_source"
-    
+
     // MARK: - Internal State
-    
+
     private var cancellables = Set<AnyCancellable>()
-    
+
     private init() {
         activeSource = .motionBG
         restoreState()
     }
-    
+
     /// 恢复持久化状态
     private func restoreState() {
         if let saved = UserDefaults.standard.string(forKey: selectedSourceKey),
@@ -523,41 +528,41 @@ class WorkshopSourceManager: ObservableObject {
             activeSource = source
         }
     }
-    
+
     // MARK: - Public API
-    
+
     var isUsingWallpaperEngine: Bool {
         activeSource == .wallpaperEngine
     }
-    
+
     var currentSourceSupportsSearch: Bool {
         activeSource.supportsSearch
     }
-    
+
     var currentSourceSupportsCategories: Bool {
         activeSource.supportsCategories
     }
-    
+
     func currentSource() -> SourceType {
         activeSource
     }
-    
+
     /// 手动切换数据源
     func switchTo(_ source: SourceType) {
         guard activeSource != source else { return }
-        
+
         let previousSource = activeSource
         activeSource = source
-        
+
         UserDefaults.standard.set(source.rawValue, forKey: selectedSourceKey)
-        
+
         lastSwitchMessage = "已切换到 \(source.displayName) - \(source.subtitle)"
-        
+
         NotificationCenter.default.post(name: .workshopSourceChanged, object: nil)
-        
+
         print("[WorkshopSourceManager] Switched from \(previousSource.displayName) to \(source.displayName)")
     }
-    
+
     /// 切换到下一个数据源
     func switchToNext() {
         let allSources = SourceType.allCases
@@ -565,13 +570,13 @@ class WorkshopSourceManager: ObservableObject {
         let nextIndex = (currentIndex + 1) % allSources.count
         switchTo(allSources[nextIndex])
     }
-    
+
     /// SteamCMD 是否已配置/安装
     var isSteamCMDConfigured: Bool {
         guard let dir = Self.bundledSteamCMDDirectoryURL() else { return false }
         return FileManager.default.fileExists(atPath: dir.appendingPathComponent("steamcmd.sh").path)
     }
-    
+
     /// 是否已通过 SteamCMD 凭证配置
     var isSteamAuthenticated: Bool {
         hasStoredSteamCredentials

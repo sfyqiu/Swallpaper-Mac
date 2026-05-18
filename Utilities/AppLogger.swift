@@ -81,27 +81,27 @@ final class AppLogger: @unchecked Sendable {
     // MARK: - 公开接口
 
     static func debug(_ module: AppLogModule = .general,
-                      _ message: String,
+                      _ message: @autoclosure () -> String,
                       metadata: [String: Any]? = nil) {
-        shared.log(.debug, module, message, metadata)
+        shared.log(.debug, module, message(), metadata)
     }
 
     static func info(_ module: AppLogModule = .general,
-                     _ message: String,
+                     _ message: @autoclosure () -> String,
                      metadata: [String: Any]? = nil) {
-        shared.log(.info, module, message, metadata)
+        shared.log(.info, module, message(), metadata)
     }
 
     static func warn(_ module: AppLogModule = .general,
-                     _ message: String,
+                     _ message: @autoclosure () -> String,
                      metadata: [String: Any]? = nil) {
-        shared.log(.warn, module, message, metadata)
+        shared.log(.warn, module, message(), metadata)
     }
 
     static func error(_ module: AppLogModule = .general,
-                      _ message: String,
+                      _ message: @autoclosure () -> String,
                       metadata: [String: Any]? = nil) {
-        shared.log(.error, module, message, metadata)
+        shared.log(.error, module, message(), metadata)
     }
 
     /// 记录耗时操作（自动计算 duration）

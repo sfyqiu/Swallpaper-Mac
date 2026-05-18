@@ -23,7 +23,7 @@ final class MediaLibraryService: ObservableObject {
     private init() {
         // ⚠️ 不在 init 中读 UserDefaults，避免 _CFXPreferences 递归栈溢出
     }
-    
+
     /// 延迟恢复持久化数据（必须在 AppDelegate.applicationDidFinishLaunching 中调用）
     func restoreSavedData() {
         loadPersistedState()
@@ -34,14 +34,14 @@ final class MediaLibraryService: ObservableObject {
             .filter(\.isActive)
             .map(\.item)
     }
-    
+
     /// 获取指定文件夹内的收藏项目
     func favoriteItems(inFolder folderID: String?) -> [MediaItem] {
         favoriteRecords
             .filter { $0.isActive && $0.folderID == folderID }
             .map(\.item)
     }
-    
+
     /// 获取指定文件夹内的下载项目
     func downloadedItems(inFolder folderID: String?) -> [MediaDownloadRecord] {
         downloadRecords.filter { $0.isActive && $0.folderID == folderID }
@@ -50,7 +50,7 @@ final class MediaLibraryService: ObservableObject {
     var downloadedItems: [MediaDownloadRecord] {
         downloadRecords.filter(\.isActive)
     }
-    
+
     /// 根目录下载项目（无 folderID）
     var rootDownloadedItems: [MediaDownloadRecord] {
         downloadRecords.filter { $0.isActive && $0.folderID == nil }
@@ -79,11 +79,11 @@ final class MediaLibraryService: ObservableObject {
     func isFavorite(_ item: MediaItem) -> Bool {
         favoriteRecords.contains { $0.item.id == item.id && $0.isActive }
     }
-    
+
     func favoriteRecord(for itemID: String) -> MediaFavoriteRecord? {
         favoriteRecords.first { $0.item.id == itemID && $0.isActive }
     }
-    
+
     func downloadRecord(for itemID: String) -> MediaDownloadRecord? {
         downloadRecords.first { $0.item.id == itemID && $0.isActive }
     }
@@ -378,6 +378,16 @@ final class MediaLibraryService: ObservableObject {
         }
     }
 
+    /// 公开方法：清除指定下载记录的 Scene 烘焙缓存（删除文件 + 重置 artifact），供重新烘焙使用
+    func clearSceneBakeArtifact(itemID: String) {
+        guard let index = downloadRecords.firstIndex(where: { $0.item.id == itemID }) else { return }
+        let record = downloadRecords[index]
+        deleteSceneBakeArtifacts(for: record)
+        objectWillChange.send()
+        downloadRecords[index].sceneBakeArtifact = nil
+        persistDownloads()
+    }
+
     /// 删除与下载记录关联的 Scene 烘焙产物
     private func deleteSceneBakeArtifacts(for record: MediaDownloadRecord) {
         let fm = FileManager.default
@@ -428,9 +438,9 @@ final class MediaLibraryService: ObservableObject {
         recentItems.removeAll { ids.contains($0.id) }
         persistRecents()
     }
-    
+
     // MARK: - 文件夹移动
-    
+
     func moveMediaToFolder(mediaID: String, folderID: String?) {
         // 更新收藏记录
         if let index = favoriteRecords.firstIndex(where: { $0.item.id == mediaID }) {
@@ -445,7 +455,7 @@ final class MediaLibraryService: ObservableObject {
             downloadRecords = downloadRecords
         }
     }
-    
+
     func moveItemsToRoot(fromFolder folderID: String) {
         var favoritesChanged = false
         for index in favoriteRecords.indices where favoriteRecords[index].folderID == folderID {
@@ -472,7 +482,7 @@ final class MediaLibraryService: ObservableObject {
     @discardableResult
     func cleanupInvalidDownloadRecords() -> Int {
         var cleanedCount = 0
-        
+
         for (index, record) in downloadRecords.enumerated() {
             // 检查文件是否存在（如果是活跃记录）
             if record.isActive && !FileManager.default.fileExists(atPath: record.localFilePath) {
@@ -481,13 +491,13 @@ final class MediaLibraryService: ObservableObject {
                 cleanedCount += 1
             }
         }
-        
+
         if cleanedCount > 0 {
             persistDownloads()
             downloadRecords = downloadRecords
             print("[MediaLibraryService] Cleaned up \(cleanedCount) invalid download records")
         }
-        
+
         return cleanedCount
     }
 
@@ -627,14 +637,14 @@ final class WallpaperLibraryService: ObservableObject {
             .filter(\.isActive)
             .map(\.wallpaper)
     }
-    
+
     /// 获取指定文件夹内的收藏壁纸
     func favoriteWallpapers(inFolder folderID: String?) -> [Wallpaper] {
         favoriteRecords
             .filter { $0.isActive && $0.folderID == folderID }
             .map(\.wallpaper)
     }
-    
+
     /// 获取指定文件夹内的下载壁纸
     func downloadedWallpapers(inFolder folderID: String?) -> [WallpaperDownloadRecord] {
         downloadRecords.filter { $0.isActive && $0.folderID == folderID }
@@ -667,11 +677,11 @@ final class WallpaperLibraryService: ObservableObject {
     func isFavorite(_ wallpaper: Wallpaper) -> Bool {
         favoriteRecords.contains { $0.wallpaper.id == wallpaper.id && $0.isActive }
     }
-    
+
     func favoriteRecord(for wallpaperID: String) -> WallpaperFavoriteRecord? {
         favoriteRecords.first { $0.wallpaper.id == wallpaperID && $0.isActive }
     }
-    
+
     func downloadRecord(for wallpaperID: String) -> WallpaperDownloadRecord? {
         downloadRecords.first { $0.wallpaper.id == wallpaperID && $0.isActive }
     }
@@ -744,12 +754,12 @@ final class WallpaperLibraryService: ObservableObject {
             downloadRecords = downloadRecords
         }
     }
-    
+
     /// 批量更新壁纸（性能优化：只持久化一次）
     func upsertBatch(_ wallpapers: [Wallpaper]) {
         var favoritesChanged = false
         var downloadsChanged = false
-        
+
         for wallpaper in wallpapers {
             if let favoriteIndex = favoriteRecords.firstIndex(where: { $0.wallpaper.id == wallpaper.id }) {
                 favoriteRecords[favoriteIndex].wallpaper = wallpaper
@@ -761,7 +771,7 @@ final class WallpaperLibraryService: ObservableObject {
                 downloadsChanged = true
             }
         }
-        
+
         // 批量持久化
         if favoritesChanged {
             persistFavorites()
@@ -941,7 +951,7 @@ final class WallpaperLibraryService: ObservableObject {
     @discardableResult
     func cleanupInvalidDownloadRecords() -> Int {
         var cleanedCount = 0
-        
+
         for (index, record) in downloadRecords.enumerated() {
             // 检查文件是否存在（如果是活跃记录）
             if record.isActive && !FileManager.default.fileExists(atPath: record.localFilePath) {
@@ -950,13 +960,13 @@ final class WallpaperLibraryService: ObservableObject {
                 cleanedCount += 1
             }
         }
-        
+
         if cleanedCount > 0 {
             persistDownloads()
             downloadRecords = downloadRecords
             print("[WallpaperLibraryService] Cleaned up \(cleanedCount) invalid download records")
         }
-        
+
         return cleanedCount
     }
 
@@ -973,7 +983,7 @@ final class WallpaperLibraryService: ObservableObject {
     }
 
     // MARK: - 文件夹移动
-    
+
     func moveWallpaperToFolder(wallpaperID: String, folderID: String?) {
         // 更新收藏记录
         if let index = favoriteRecords.firstIndex(where: { $0.wallpaper.id == wallpaperID }) {
@@ -988,7 +998,7 @@ final class WallpaperLibraryService: ObservableObject {
             downloadRecords = downloadRecords
         }
     }
-    
+
     func moveItemsToRoot(fromFolder folderID: String) {
         var favoritesChanged = false
         for index in favoriteRecords.indices where favoriteRecords[index].folderID == folderID {

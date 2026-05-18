@@ -19,6 +19,11 @@ struct DisplaySchedulerConfig: Codable, Equatable {
     var includeWallpapers: Bool
     var includeMedia: Bool
 
+    /// 判断是否为"播完即换"模式
+    var isOnEndMode: Bool {
+        intervalMinutes == SchedulerConfig.intervalOnEndMinutes
+    }
+
     static func fromLegacy(_ config: SchedulerConfig) -> DisplaySchedulerConfig {
         DisplaySchedulerConfig(
             isEnabled: config.isEnabled,
@@ -95,6 +100,9 @@ struct SchedulerConfig: Codable {
     var includeMedia: Bool
     var displayConfigs: [String: DisplaySchedulerConfig]
 
+    /// 特殊间隔值：播完即换（视频播放完毕后自动切换到下一个）
+    static let intervalOnEndMinutes: Int = -1
+
     static let `default` = SchedulerConfig(
         isEnabled: false,
         intervalMinutes: 60,
@@ -170,6 +178,13 @@ struct SchedulerConfig: Codable {
     }
 
     func resolvedDisplayConfig(for screenID: String) -> DisplaySchedulerConfig {
-        displayConfigs[screenID] ?? .fromLegacy(self)
+        if let config = displayConfigs[screenID] {
+            return config
+        }
+        // 无 per-display 配置的显示器（如新接入/唤醒后延迟枚举的屏幕）默认关闭自动切换。
+        // 不再从全局 isEnabled 继承，避免旧版遗留的全局开关误开启新显示器。
+        var fallback = DisplaySchedulerConfig.fromLegacy(self)
+        fallback.isEnabled = false
+        return fallback
     }
 }

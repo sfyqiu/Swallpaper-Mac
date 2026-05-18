@@ -435,6 +435,13 @@ class WallpaperViewModel: ObservableObject {
         return response.data
     }
 
+    /// 对外公开的壁纸详情获取接口（供 WallpaperDetailSheet 调用以补充 uploader 数据）
+    /// - Parameter id: Wallhaven 壁纸 ID
+    /// - Returns: 壁纸详情数据（含 uploader）
+    func fetchWallpaperDetail(byID id: String) async throws -> Wallpaper {
+        try await resolveWallhavenWallpaperByID(id)
+    }
+
     // MARK: - 分享
     func shareWallpaper(_ wallpaper: Wallpaper, from view: NSView? = nil) {
         guard let url = URL(string: wallpaper.url) else { return }
@@ -491,6 +498,9 @@ class WallpaperViewModel: ObservableObject {
         errorMessage = nil
         currentPage = 1
         currentRandomSeed = nil
+
+        // 清空旧搜索结果，避免新搜索时残留上一轮的图片
+        wallpapers = []
 
         // 重置预加载状态
         preloadTask?.cancel()
@@ -561,6 +571,38 @@ class WallpaperViewModel: ObservableObject {
         let response = try await fetchWallpapers(parameters: parameters)
         response.data.forEach { wallpaperLibrary.upsert($0) }
         return Array(response.data.prefix(limit))
+    }
+
+    // MARK: - 按作者搜索壁纸
+
+    /// 获取指定作者的所有壁纸（使用 Wallhaven API 的 `@username` 语法）
+    /// - Parameters:
+    ///   - username: 作者用户名
+    ///   - page: 页码，从 1 开始
+    ///   - limit: 每页数量，默认 20
+    /// - Returns: 壁纸列表
+    func fetchWallpapersByAuthor(username: String, page: Int = 1, limit: Int = 20) async throws -> [Wallpaper] {
+        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedUsername.isEmpty else { return [] }
+
+        let parameters = WallhavenAPI.SearchParameters(
+            query: "@\(trimmedUsername)",
+            page: page,
+            perPage: limit,
+            categories: normalizedCategoryMask(),
+            purity: normalizedPurityMask(),
+            sorting: SortingOption.dateAdded.rawValue,
+            order: "desc",
+            topRange: nil,
+            atleast: atleastResolution,
+            resolutions: normalizedResolutions(),
+            ratios: normalizedRatios(),
+            colors: normalizedColors()
+        )
+
+        let response = try await fetchWallpapers(parameters: parameters)
+        response.data.forEach { wallpaperLibrary.upsert($0) }
+        return response.data
     }
 
     // MARK: - 加载更多（支持 Task Cancellation + 预加载）
@@ -1069,8 +1111,10 @@ class WallpaperViewModel: ObservableObject {
 
         // 如果指定了特定屏幕，只设置到该屏幕
         if let targetScreen = targetScreen {
-            // 切到静态图前必须停 CLI 引擎，否则 WE Scene/Web 的 daemon 仍在后台渲染
-            WallpaperEngineXBridge.shared.ensureStoppedForNonCLIWallpaper()
+            // 切到静态图前如果目标屏幕被 CLI 管理则停 CLI 引擎
+            if WallpaperEngineXBridge.shared.isManaging(screen: targetScreen) {
+                WallpaperEngineXBridge.shared.ensureStoppedForNonCLIWallpaper()
+            }
             // 只停目标屏幕的动态壁纸，避免影响其他屏幕
             VideoWallpaperManager.shared.stopNativeVideoWallpaperOnly(for: targetScreen)
             let fillOptions: [NSWorkspace.DesktopImageOptionKey: Any] = [

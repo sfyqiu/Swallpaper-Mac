@@ -45,6 +45,19 @@ final class DesktopWallpaperSyncManager {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+        // 系统唤醒后同步壁纸到所有显示器（外接显示器可能延迟枚举）
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(handleSystemDidWake),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(handleScreensDidWake),
+            name: NSWorkspace.screensDidWakeNotification,
+            object: nil
+        )
     }
 
     /// 注册一次静态壁纸设置，后续 Space 切换时会自动同步
@@ -112,9 +125,52 @@ final class DesktopWallpaperSyncManager {
             let workItem = DispatchWorkItem { [weak self] in
                 guard let self else { return }
                 self.relinkScreenStateForCurrentDisplays()
+                // 显示器变化后立即同步壁纸，确保新接入/重新枚举的显示器立即获得正确的壁纸
+                self.performSync(source: "screenChange")
             }
             self.pendingScreenChangeWorkItem = workItem
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
+        }
+    }
+
+    @objc private func handleSystemDidWake() {
+        // 系统唤醒后延迟同步，给 macOS 时间重新枚举所有显示器
+        // 注意：不 cancel pendingScreenChangeWorkItem（那是 screenParametersChanged 的专用 work item），
+        // 避免 screenParametersChanged 在唤醒期间触发时把唤醒重建任务连带后续二次重试一起 cancel 掉。
+        // performSync 内部有 0.5s 防抖，重复同步会被自动跳过。
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.relinkScreenStateForCurrentDisplays()
+                self.performSync(source: "systemWake")
+                // 二次延迟同步：外接显示器可能 1~2 秒后才被 macOS 完全枚举
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                    guard let self else { return }
+                    self.relinkScreenStateForCurrentDisplays()
+                    self.performSync(source: "systemWakeRetry")
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
+        }
+    }
+
+    @objc private func handleScreensDidWake() {
+        // 屏幕唤醒后延迟同步（不 cancel pendingScreenChangeWorkItem，理由同上）
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                self.relinkScreenStateForCurrentDisplays()
+                self.performSync(source: "screensWake")
+                // 二次延迟同步：应对显示器延迟枚举
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                    guard let self else { return }
+                    self.relinkScreenStateForCurrentDisplays()
+                    self.performSync(source: "screensWakeRetry")
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
         }
     }
 
@@ -141,6 +197,7 @@ final class DesktopWallpaperSyncManager {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
     }
 
     /// 执行实际同步逻辑
@@ -203,4 +260,3 @@ final class DesktopWallpaperSyncManager {
         }
     }
 }
-

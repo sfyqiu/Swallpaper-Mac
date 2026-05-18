@@ -405,6 +405,12 @@ enum SceneOfflineBakeService {
         let webDir = URL(fileURLWithPath: webDirPath)
         let fm = FileManager.default
 
+        // 注意：下面任何步骤失败都应清理已创建的 .web 目录，
+        // 否则空目录会导致调度器认为 .web 可用而去调用 CLI，最终渲染失败。
+        let cleanUp = { [webDirPath] in
+            try? fm.removeItem(atPath: webDirPath)
+        }
+
         do {
             if fm.fileExists(atPath: webDirPath) {
                 try fm.removeItem(at: webDir)
@@ -412,6 +418,7 @@ enum SceneOfflineBakeService {
             try fm.createDirectory(at: webDir, withIntermediateDirectories: true)
         } catch {
             print("[WebOverlay] Failed to create web directory: \(error)")
+            cleanUp()
             return
         }
 
@@ -440,16 +447,19 @@ enum SceneOfflineBakeService {
         // 4. 复制模板并注入配置
         guard let templateURL = resolveWebTemplateURL() else {
             print("[WebOverlay] Template not found")
+            cleanUp()
             return
         }
         guard var templateHTML = try? String(contentsOf: templateURL) else {
             print("[WebOverlay] Failed to read template")
+            cleanUp()
             return
         }
 
         guard let configData = try? JSONSerialization.data(withJSONObject: config, options: []),
               let configJSON = String(data: configData, encoding: .utf8) else {
             print("[WebOverlay] Failed to encode config")
+            cleanUp()
             return
         }
 
@@ -463,6 +473,7 @@ enum SceneOfflineBakeService {
             try templateHTML.write(to: indexURL, atomically: true, encoding: .utf8)
         } catch {
             print("[WebOverlay] Failed to write index.html: \(error)")
+            cleanUp()
             return
         }
 
@@ -495,6 +506,11 @@ enum SceneOfflineBakeService {
     private static func resolveWebTemplateURL() -> URL? {
         if let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "scene-bake-web-template") {
             return url
+        }
+        // 兼容 Xcode folder reference → Resources 嵌套在 Contents/Resources/Resources/ 下的情况
+        let nestedResources = Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/Resources/scene-bake-web-template/index.html")
+        if FileManager.default.fileExists(atPath: nestedResources.path) {
+            return nestedResources
         }
         let candidates = [
             URL(fileURLWithPath: "/Volumes/mac/CodeLibrary/Claude/WallHaven/Resources/scene-bake-web-template/index.html"),

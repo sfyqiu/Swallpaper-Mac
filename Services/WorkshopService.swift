@@ -3,6 +3,55 @@ import AppKit
 import CFNetwork
 import SwiftSoup
 
+// MARK: - SteamCMD 并发下载限制器
+/// SteamCMD 虽无明确的 CLI 并发限制，但 Steam 后端会对同一账号的
+/// 同时登录/下载请求进行限流（RateLimitExceeded），因此需要控制并发数。
+/// 实测超过 2 个同时进行的 SteamCMD 下载即可能触发限流。
+///
+/// ⚠️ 使用轮询而非 Continuation 实现排队，原因：
+/// 如果用 `withCheckedContinuation` 在满负荷时挂起调用方，当用户在
+/// 排队等待期间取消下载任务时，continuation 会泄露在 waiters 数组中，
+/// 导致内存泄漏和运行时 "SWIFT TASK CONTINUATION MISUSE" 警告。
+/// 轮询方案通过 Task.sleep 等待，取消时正确抛出 CancellationError，
+/// 不存在延续泄露的风险。
+private actor SteamCMDDownloadLimiter {
+    /// 最大同时下载数
+    private let maxConcurrent = 2
+    /// 当前活跃下载数
+    private var activeCount = 0
+    /// 当前正在轮询等待的任务数（近似排队深度）
+    private var waitCount = 0
+    /// 轮询间隔
+    private let pollInterval: UInt64 = 500_000_000 // 0.5s
+
+    /// 获取一个下载槽位；若已满则每隔 0.5s 轮询一次
+    func acquire() async {
+        while true {
+            if activeCount < maxConcurrent {
+                activeCount += 1
+                return
+            }
+            waitCount += 1
+            // 休眠期间若 Task 被取消，CancellationError 被 try? 静默吞掉，
+            // 循环继续检查槽位。实际下载操作在 acquire 返回后进行，
+            // 那里会通过 try await 抛出 CancellationError 并被外层捕获。
+            try? await Task.sleep(nanoseconds: pollInterval)
+            waitCount = max(0, waitCount - 1)
+        }
+    }
+
+    /// 释放一个下载槽位
+    func release() {
+        activeCount = max(0, activeCount - 1)
+    }
+
+    /// 当前排队（轮询等待）的任务数
+    func queuedCount() -> Int { waitCount }
+
+    /// 当前活跃下载数
+    func currentActiveCount() -> Int { activeCount }
+}
+
 // MARK: - Workshop Service
 ///
 /// 处理 Wallpaper Engine Steam 创意工坊的搜索和下载
@@ -16,6 +65,8 @@ class WorkshopService: ObservableObject {
     @Published var errorMessage: String?
     @Published var searchResults: [WorkshopWallpaper] = []
     @Published var hasMorePages = false
+    /// SteamCMD 下载排队数量（超过并发上限时排队等待）
+    @Published var steamCMDQueuedCount: Int = 0
 
     // MARK: - Configuration
 
@@ -24,6 +75,9 @@ class WorkshopService: ObservableObject {
     private var currentPage = 1
     private let pageSize = 20
 
+    /// SteamCMD 并发下载限制器（全局，限制同时进行的 steamcmd 进程数）
+    private let downloadLimiter = SteamCMDDownloadLimiter()
+
     /// 主窗口长期隐藏后释放 Workshop 浏览结果；后台下载/动态壁纸渲染不依赖这些前台列表。
     func clearForegroundState() {
         isLoading = false
@@ -31,6 +85,94 @@ class WorkshopService: ObservableObject {
         searchResults.removeAll()
         hasMorePages = false
         currentPage = 1
+    }
+
+    // MARK: - 按作者查询 Workshop 物品
+
+    /// 从 Steam Workshop 作者页面抓取壁纸列表
+    /// - Parameters:
+    ///   - steamID: Steam 64位数字 ID
+    ///   - page: 页码（从 1 开始）
+    /// - Returns: 壁纸列表
+    func fetchByAuthor(steamID: String, page: Int = 1) async throws -> [WorkshopWallpaper] {
+        // 构造作者 Workshop 页面 URL
+        let urlString = "https://steamcommunity.com/profiles/\(steamID)/myworkshopfiles/?appid=\(wallpaperEngineAppID)&p=\(page)&num_per_page=30"
+        guard let url = URL(string: urlString) else {
+            throw WorkshopError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36", forHTTPHeaderField: "User-Agent")
+
+        let data = try await NetworkService.shared.fetchData(request: request)
+        guard let html = String(data: data, encoding: .utf8) else {
+            throw WorkshopError.apiError("无法解析 HTML 响应")
+        }
+
+        // 先尝试从 SSR JSON 提取
+        var wallpapers = extractFromJSON(html)
+        if !wallpapers.isEmpty {
+            AppLogger.info(.media, "fetchByAuthor used JSON/SSR extraction: \(wallpapers.count) items")
+            // 补充作者名
+            let authorMap = extractAuthorMapFromHTML(html)
+            if !authorMap.isEmpty {
+                wallpapers = wallpapers.map { item in
+                    guard let authorName = authorMap[item.id], authorName != "Unknown" else { return item }
+                    return WorkshopWallpaper(
+                        id: item.id,
+                        title: item.title,
+                        description: item.description,
+                        previewURL: item.previewURL,
+                        author: WorkshopAuthor(steamID: item.author.steamID, name: authorName, avatarURL: item.author.avatarURL),
+                        fileSize: item.fileSize,
+                        fileURL: item.fileURL,
+                        steamAppID: item.steamAppID,
+                        subscriptions: item.subscriptions,
+                        favorites: item.favorites,
+                        views: item.views,
+                        rating: item.rating,
+                        type: item.type,
+                        tags: item.tags,
+                        isAnimatedImage: item.isAnimatedImage,
+                        createdAt: item.createdAt,
+                        updatedAt: item.updatedAt
+                    )
+                }
+            }
+            // 确保作者名为原始请求的 author
+            wallpapers = wallpapers.map { item in
+                WorkshopWallpaper(
+                    id: item.id,
+                    title: item.title,
+                    description: item.description,
+                    previewURL: item.previewURL,
+                    author: WorkshopAuthor(
+                        steamID: steamID,
+                        name: item.author.name != "Unknown" ? item.author.name : item.author.steamID,
+                        avatarURL: item.author.avatarURL
+                    ),
+                    fileSize: item.fileSize,
+                    fileURL: item.fileURL,
+                    steamAppID: item.steamAppID,
+                    subscriptions: item.subscriptions,
+                    favorites: item.favorites,
+                    views: item.views,
+                    rating: item.rating,
+                    type: item.type,
+                    tags: item.tags,
+                    isAnimatedImage: item.isAnimatedImage,
+                    createdAt: item.createdAt,
+                    updatedAt: item.updatedAt
+                )
+            }
+            return wallpapers
+        }
+
+        // 降级：从 HTML DOM 解析
+        AppLogger.info(.media, "fetchByAuthor falling back to HTML DOM parsing")
+        let doc = try SwiftSoup.parse(html)
+        let items = try doc.select(".workshopItem, .workshopItemWrapper, [id*='sharedfiles_']")
+        return try items.compactMap { try parseWorkshopItem($0) }
     }
 
     // MARK: - Search
@@ -313,13 +455,51 @@ class WorkshopService: ObservableObject {
                 if authorName != "Unknown" { break }
             }
 
+            // 提取作者头像 URL
+            var authorAvatarURL: URL? = nil
+            var avatarEl: Element? = link
+            for _ in 0..<5 {
+                guard let parent = avatarEl?.parent() else { break }
+                avatarEl = parent
+                // 尝试从 img 的 srcset/src 取
+                if let img = try? parent.select(".playerAvatar img, .playerAvatarMedium img, img.avatar, .playerAvatar picture img").first() {
+                    var src = (try? img.attr("srcset")) ?? ""
+                    if src.isEmpty { src = (try? img.attr("src")) ?? "" }
+                    if src.isEmpty { src = (try? img.attr("data-src")) ?? "" }
+                    // srcset 取第一个 URL
+                    if let firstURL = src.components(separatedBy: ",").first?.trimmingCharacters(in: .whitespaces) {
+                        src = firstURL.components(separatedBy: " ").first ?? firstURL
+                    }
+                    if !src.isEmpty {
+                        var cleanURL = src.components(separatedBy: "?").first ?? src
+                        if cleanURL.hasPrefix("//") { cleanURL = "https:" + cleanURL }
+                        authorAvatarURL = URL(string: cleanURL)
+                    }
+                    break
+                }
+                // 尝试从 picture source 取
+                if authorAvatarURL == nil,
+                   let sourceEl = try? parent.select(".playerAvatar source, .playerAvatar picture source").first() {
+                    var src = (try? sourceEl.attr("srcset")) ?? ""
+                    if !src.isEmpty {
+                        if let firstURL = src.components(separatedBy: ",").first?.trimmingCharacters(in: .whitespaces) {
+                            src = firstURL.components(separatedBy: " ").first ?? firstURL
+                        }
+                        var cleanURL = src.components(separatedBy: "?").first ?? src
+                        if cleanURL.hasPrefix("//") { cleanURL = "https:" + cleanURL }
+                        authorAvatarURL = URL(string: cleanURL)
+                    }
+                    break
+                }
+            }
+
             let isAnimatedImage = previewURL?.absoluteString.lowercased().contains(".gif") ?? false
             wallpapers.append(WorkshopWallpaper(
                 id: id,
                 title: title,
                 description: nil,
                 previewURL: previewURL,
-                author: WorkshopAuthor(steamID: "", name: authorName, avatarURL: nil),
+                author: WorkshopAuthor(steamID: "", name: authorName, avatarURL: authorAvatarURL),
                 fileSize: nil,
                 fileURL: nil,
                 steamAppID: wallpaperEngineAppID,
@@ -444,6 +624,7 @@ class WorkshopService: ObservableObject {
             }
 
             var authorName = "Unknown"
+            var authorAvatarURL: URL? = nil
             let authorSelectors = [
                 ".workshopItemAuthorName",
                 ".author",
@@ -458,6 +639,40 @@ class WorkshopService: ObservableObject {
                         .replacingOccurrences(of: "Author:", with: "")
                         .replacingOccurrences(of: "By ", with: "")
                         .trimmingCharacters(in: .whitespacesAndNewlines)
+                    // 提取作者头像 URL（playerAvatar 下的 img，兼容 srcset 和 picture 元素）
+                    if let avatarImg = try authorEl.select(".playerAvatar img, .playerAvatarMedium img, img.avatar, .playerAvatar picture img, #HeaderUserAvatar img").first() {
+                        var src = try avatarImg.attr("srcset")
+                        if src.isEmpty {
+                            src = try avatarImg.attr("src")
+                        }
+                        if src.isEmpty {
+                            src = try avatarImg.attr("data-src")
+                        }
+                        // 从 srcset 中取第一个 URL（逗号分隔）
+                        if let firstURL = src.components(separatedBy: ",").first?.trimmingCharacters(in: .whitespaces) {
+                            src = firstURL.components(separatedBy: " ").first ?? firstURL
+                        }
+                        if !src.isEmpty {
+                            var cleanURL = src.components(separatedBy: "?").first ?? src
+                            if cleanURL.hasPrefix("//") {
+                                cleanURL = "https:" + cleanURL
+                            }
+                            authorAvatarURL = URL(string: cleanURL)
+                        }
+                    }
+                    // 如果上面没取到，尝试从 source[srcset] 拿
+                    if authorAvatarURL == nil,
+                       let sourceEl = try authorEl.select(".playerAvatar source, .playerAvatar picture source, #HeaderUserAvatar source").first() {
+                        var src = try sourceEl.attr("srcset")
+                        if !src.isEmpty {
+                            if let firstURL = src.components(separatedBy: ",").first?.trimmingCharacters(in: .whitespaces) {
+                                src = firstURL.components(separatedBy: " ").first ?? firstURL
+                            }
+                            var cleanURL = src.components(separatedBy: "?").first ?? src
+                            if cleanURL.hasPrefix("//") { cleanURL = "https:" + cleanURL }
+                            authorAvatarURL = URL(string: cleanURL)
+                        }
+                    }
                     break
                 }
             }
@@ -474,7 +689,7 @@ class WorkshopService: ObservableObject {
             let author = WorkshopAuthor(
                 steamID: "",
                 name: authorName,
-                avatarURL: nil
+                avatarURL: authorAvatarURL
             )
 
             let isAnimatedImage = previewURL?.absoluteString.lowercased().contains(".gif") ?? false
@@ -863,6 +1078,20 @@ class WorkshopService: ObservableObject {
         guardCode: String? = nil,
         progressHandler: (@Sendable (Double) -> Void)? = nil
     ) async throws -> URL {
+        // 获取并发下载槽位（超出上限则排队等待）
+        await downloadLimiter.acquire()
+        // 更新排队计数
+        let queued = await downloadLimiter.queuedCount()
+        await MainActor.run { steamCMDQueuedCount = queued }
+
+        defer {
+            Task {
+                await downloadLimiter.release()
+                let remaining = await downloadLimiter.queuedCount()
+                await MainActor.run { steamCMDQueuedCount = remaining }
+            }
+        }
+
         // 先尝试不带密码的 login，复用已保存的 session token
         // 如果 session 已失效，再 fallback 到带密码的登录
         do {
@@ -1891,6 +2120,8 @@ extension WorkshopService {
             downloadOptions = [option]
         }
 
+        let authorName = wallpaper.author.name != "Unknown" ? wallpaper.author.name : nil
+
         return MediaItem(
             slug: "workshop_\(wallpaper.id)",
             title: wallpaper.title,
@@ -1911,7 +2142,9 @@ extension WorkshopService {
             favoriteCount: wallpaper.favorites,
             viewCount: wallpaper.views,
             ratingScore: wallpaper.rating,
-            authorName: wallpaper.author.name != "Unknown" ? wallpaper.author.name : nil,
+            authorName: authorName,
+            authorSteamID: authorName != nil ? wallpaper.author.steamID : nil,
+            authorAvatarURL: authorName != nil ? wallpaper.author.avatarURL : nil,
             fileSize: wallpaper.fileSize,
             createdAt: wallpaper.createdAt,
             updatedAt: wallpaper.updatedAt

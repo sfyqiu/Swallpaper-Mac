@@ -73,15 +73,20 @@ struct MediaExploreContentView: View {
 
             let viewportHeight = geometry.size.height
             ZStack {
-                ArcAtmosphereBackground(
-                    tint: exploreAtmosphere.tint,
-                    referenceImage: exploreAtmosphere.referenceImage,
-                    isLightMode: arcSettings.isLightMode,
-                    dotGridOpacity: arcSettings.dotGridOpacity,
-                    useNoise: true,
-                    grainIntensity: arcSettings.exploreGrainMedia
-                )
-                .ignoresSafeArea()
+                if arcSettings.compactMode {
+                    arcSettings.compactBackground
+                        .ignoresSafeArea()
+                } else {
+                    ArcAtmosphereBackground(
+                        tint: exploreAtmosphere.tint,
+                        referenceImage: exploreAtmosphere.referenceImage,
+                        isLightMode: arcSettings.isLightMode,
+                        dotGridOpacity: arcSettings.dotGridOpacity,
+                        useNoise: true,
+                        grainIntensity: arcSettings.exploreGrainMedia
+                    )
+                    .ignoresSafeArea()
+                }
 
                 ZStack {
                     contentArea(
@@ -139,7 +144,10 @@ struct MediaExploreContentView: View {
             handleTranslationCompleted()
         }
         .onChange(of: viewModel.isLoading) { _, newValue in
-            if !newValue {
+            if newValue {
+                // 加载开始时立即刷新网格，避免旧封面卡住不动
+                bumpReloadToken()
+            } else {
                 syncAtmosphereIfNeeded()
                 bumpReloadToken()
             }
@@ -158,7 +166,7 @@ struct MediaExploreContentView: View {
     @ViewBuilder
     private func contentArea(gridContentWidth: CGFloat, viewportHeight: CGFloat) -> some View {
         if viewModel.items.isEmpty {
-            legacyScrollContent(gridContentWidth: gridContentWidth, body: AnyView(
+            legacyScrollContent(gridContentWidth: gridContentWidth) {
                 Group {
                     if isMediaLoadingState {
                         loadingState
@@ -167,7 +175,7 @@ struct MediaExploreContentView: View {
                     }
                 }
                 .transition(.opacity.animation(.easeInOut(duration: 0.3)))
-            ))
+            }
         } else {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
@@ -188,11 +196,11 @@ struct MediaExploreContentView: View {
     }
 
     /// 仅用于"骨架/空状态"等无网格场景的兜底滚动容器（保留 header）
-    private func legacyScrollContent(gridContentWidth: CGFloat, body: AnyView) -> some View {
+    private func legacyScrollContent<Content: View>(gridContentWidth: CGFloat, @ViewBuilder body: () -> Content) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 headerStack
-                body
+                body()
             }
             .padding(.bottom, 48)
         }
@@ -208,7 +216,7 @@ struct MediaExploreContentView: View {
                     Task { await viewModel.loadMore() }
                 }
                 .padding(.bottom, 60)
-            } else if isLoadingMore || (viewModel.isLoadingMore && !viewModel.items.isEmpty) {
+            } else if isLoadingMore || (viewModel.isLoadingMore && !viewModel.items.isEmpty) || (viewModel.isLoading && !viewModel.items.isEmpty) {
                 BottomLoadingCard(isLoading: true)
                     .padding(.bottom, 60)
             } else if !isLoadingMore && !viewModel.hasMorePages && !viewModel.items.isEmpty {
@@ -300,38 +308,29 @@ struct MediaExploreContentView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(arcSettings.secondaryText.opacity(0.85))
 
-                // 当前源标签
-                Text(workshopSourceManager.activeSource.displayName)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(arcSettings.primaryText.opacity(0.75))
-                    .padding(.horizontal, 8)
-                    .frame(height: 20)
-                    .exploreFrostedCapsule(
-                        tint: exploreAtmosphere.tint.primary,
-                        material: .ultraThinMaterial,
-                        tintLayerOpacity: 0.06
-                    )
-
-                // 切换源按钮
-                Button {
-                    workshopSourceManager.switchToNext()
+                // 源切换 Menu（支持扩展更多源）
+                Menu {
+                    ForEach(WorkshopSourceManager.SourceType.allCases, id: \.self) { source in
+                        Button {
+                            workshopSourceManager.switchTo(source)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text(source.displayName)
+                                    .font(.system(size: 13, weight: .semibold))
+                                if source == workshopSourceManager.activeSource {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 11, weight: .bold))
+                                }
+                            }
+                        }
+                    }
                 } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 11, weight: .semibold))
+                    Text(workshopSourceManager.activeSource.displayName)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundStyle(arcSettings.primaryText.opacity(0.75))
-                        .frame(width: 24, height: 20)
-                        .exploreFrostedCapsule(
-                            tint: exploreAtmosphere.tint.primary,
-                            material: .ultraThinMaterial,
-                            tintLayerOpacity: 0.06
-                        )
                 }
-                .buttonStyle(.plain)
-                .help("切换到 \(workshopSourceManager.activeSource == .motionBG ? t("wallpaperEngine") : "MotionBG")")
-                .sourceSwitchTooltip(
-                    key: "media_source_switch_tooltip_shown",
-                    message: "点击这里切换壁纸源"
-                )
+                .menuStyle(.borderlessButton)
+                .offset(y: 1.5)
             }
 
             Text(t("exploreMedia"))
@@ -363,8 +362,10 @@ struct MediaExploreContentView: View {
                 showWorkshopURLSheet = true
             }
 
-            ArcBackgroundPanelButton(tint: exploreAtmosphere.tint.primary, grainIntensity: $arcSettings.exploreGrainMedia) {
-                randomizeAtmosphere()
+            if !arcSettings.compactMode {
+                ArcBackgroundPanelButton(tint: exploreAtmosphere.tint.primary, grainIntensity: $arcSettings.exploreGrainMedia) {
+                    randomizeAtmosphere()
+                }
             }
 
             ResetFiltersButton(tint: exploreAtmosphere.tint.secondary) {

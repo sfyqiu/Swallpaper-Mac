@@ -413,6 +413,8 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "workshopAPIConnected": "Steam session is active",
         "sessionExpired": "Not logged in or session expired",
         "steamCMDError": "Error: %@",
+        "steamCMDQueueTitle": "SteamCMD Download Queue",
+        "steamCMDQueueMessage": "SteamCMD download slots are full (%d max). Remaining downloads are queued and will start automatically.",
         // Filter view
         "apiKeyRequired": "API KEY REQUIRED",
         "apiKeyNeeded": "Sketchy and NSFW filters require a Wallhaven API Key. Please configure it in Settings.",
@@ -467,6 +469,8 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "appearance": "APPEARANCE",
         "appearanceSettings": "APPEARANCE",
         "appearanceSettingsDesc": "Customize visual effects including grain texture overlay.",
+        "compactMode": "Compact Mode",
+        "compactModeDesc": "Remove background ambiance effects and use a simple black background.",
         "videoWallpaper": "VIDEO WALLPAPER",
         "pauseWhenOtherAppForeground": "Pause When Other App Active",
         "pauseWhenOtherAppForegroundDesc": "Automatically pause dynamic wallpaper when another app is in the foreground (excludes Finder).",
@@ -574,6 +578,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "replaceRhythm": "REPLACE RHYTHM",
         "replaceRhythmDesc": "Set rotation interval, playback order, and wallpaper source.",
         "replaceInterval": "REPLACE INTERVAL",
+        "intervalOnEnd": "Play to End",
         "intervalDesc": "Determines auto-switch frequency.",
         "interval": "INTERVAL",
         "replaceOrder": "REPLACE ORDER",
@@ -624,6 +629,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "status.completed": "COMPLETED",
         "status.failed": "FAILED",
         "status.cancelled": "CANCELLED",
+        "status.queued": "Queued (%d)",
         // Media detail
         "specs2": "SPECS",
         "duration": "DURATION",
@@ -1082,7 +1088,10 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "deleteConfirmMessage": "Are you sure you want to delete this downloaded file?",
         "contentTypes": "CONTENT TYPES",
         "wallpapers": "Wallpapers",
-        "media": "Media"
+        "media": "Media",
+        "authorWallpapers": "Wallpapers by Author",
+        "totalWallpapers": "wallpapers",
+        "noWallpapers": "No wallpapers found"
     ],
     .chinese: [
         // Launch at Login
@@ -1417,6 +1426,8 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "workshopAPIConnected": "Workshop JSON API 连接正常",
         "sessionExpired": "未登录或会话已过期，请重新进行网页登录",
         "steamCMDError": "错误: %@",
+        "steamCMDQueueTitle": "SteamCMD 下载排队",
+        "steamCMDQueueMessage": "SteamCMD 同时下载数已达上限（最多 %d 个），剩余任务正在排队等待，将自动开始。",
         // Filter view
         "apiKeyRequired": "需要 API Key",
         "apiKeyNeeded": "Sketchy 和 NSFW 过滤依赖 Wallhaven API Key。请先在设置页配置有效的 API Key。",
@@ -1471,6 +1482,8 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "appearance": "外观设置",
         "appearanceSettings": "外观设置",
         "appearanceSettingsDesc": "自定义视觉效果，包括颗粒材质覆盖层。",
+        "compactMode": "简洁模式",
+        "compactModeDesc": "去除背景氛围效果，使用纯黑背景。",
         "videoWallpaper": "动态壁纸",
         "pauseWhenOtherAppForeground": "前台有其他应用时暂停",
         "pauseWhenOtherAppForegroundDesc": "当其他应用处于前台时自动暂停动态壁纸（排除访达）。",
@@ -1578,6 +1591,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "replaceRhythm": "更换节奏",
         "replaceRhythmDesc": "设置轮换间隔、播放顺序和壁纸来源。",
         "replaceInterval": "更换间隔",
+        "intervalOnEnd": "播完即换",
         "intervalDesc": "决定自动切换的频率。",
         "interval": "间隔",
         "replaceOrder": "更换顺序",
@@ -1628,6 +1642,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "status.completed": "已完成",
         "status.failed": "失败",
         "status.cancelled": "已取消",
+        "status.queued": "排队中 (%d)",
         // Media detail
         "source": "来源",
         "specs2": "规格",
@@ -2087,7 +2102,10 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "deleteConfirmMessage": "确认删除这个已下载的文件吗？",
         "contentTypes": "内容类型",
         "wallpapers": "壁纸",
-        "media": "媒体"
+        "media": "媒体",
+        "authorWallpapers": "作者壁纸",
+        "totalWallpapers": "张壁纸",
+        "noWallpapers": "暂无壁纸"
     ],
     .japanese: [
         // Launch at Login
@@ -2423,6 +2441,8 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "workshopAPIConnected": "Workshop JSON API の接続は正常です",
         "sessionExpired": "未ログイン、またはセッションの有効期限が切れました。ウェブページから再ログインしてください",
         "steamCMDError": "エラー: %@",
+        "steamCMDQueueTitle": "SteamCMD ダウンロード待ち",
+        "steamCMDQueueMessage": "SteamCMD の同時ダウンロード数が上限（最大 %d）に達しました。残りのタスクは待機中で、自動的に開始されます。",
         // Filter view
         "apiKeyRequired": "API Keyが必要",
         "apiKeyNeeded": "SketchyとNSFWフィルターにはWallhaven API Keyが必要です。設定で構成してください。",
@@ -2476,6 +2496,8 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "appearance": "外観設定",
         "appearanceSettings": "外観設定",
         "appearanceSettingsDesc": "映画風の颗粒テクスチャオーバーレイなど、視覚効果をカスタマイズします。",
+        "compactMode": "コンパクトモード",
+        "compactModeDesc": "背景の雰囲気エフェクトを削除し、シンプルな黒背景を使用します。",
         "videoWallpaper": "動的壁紙",
         "pauseWhenOtherAppForeground": "他のアプリ前面時に一時停止",
         "pauseWhenOtherAppForegroundDesc": "他のアプリが前面にある場合、動的壁紙を自動的に一時停止します（Finderを除く）。",
@@ -2583,6 +2605,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "replaceRhythm": "切り替えリズム",
         "replaceRhythmDesc": "ローテーション間隔、再生順序、壁纸ソースを設定。",
         "replaceInterval": "切り替え間隔",
+        "intervalOnEnd": "再生終了時に切り替え",
         "intervalDesc": "自動切り替えの頻度を決定。",
         "interval": "間隔",
         "replaceOrder": "切り替え順序",
@@ -2633,6 +2656,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "status.completed": "完了",
         "status.failed": "失敗",
         "status.cancelled": "キャンセル済み",
+        "status.queued": "待機中 (%d)",
         // Media detail
         "source": "ソース",
         "specs2": "仕様",
@@ -3091,7 +3115,10 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "deleteConfirmMessage": "このダウンロード済みファイルを削除してもよろしいですか？",
         "contentTypes": "コンテンツタイプ",
         "wallpapers": "壁紙",
-        "media": "メディア"
+        "media": "メディア",
+        "authorWallpapers": "作者の壁紙",
+        "totalWallpapers": "枚の壁紙",
+        "noWallpapers": "壁紙が見つかりません"
     ]
 ]
 

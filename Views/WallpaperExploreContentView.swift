@@ -98,15 +98,20 @@ struct WallpaperExploreContentView: View {
             let gridConfig = WallpaperGridConfig(contentWidth: contentWidth)
 
             ZStack {
-                ArcAtmosphereBackground(
-                    tint: exploreAtmosphere.tint,
-                    referenceImage: exploreAtmosphere.referenceImage,
-                    isLightMode: arcSettings.isLightMode,
-                    dotGridOpacity: arcSettings.dotGridOpacity,
-                    useNoise: true,
-                    grainIntensity: arcSettings.exploreGrainWallpaper
-                )
-                .ignoresSafeArea()
+                if arcSettings.compactMode {
+                    arcSettings.compactBackground
+                        .ignoresSafeArea()
+                } else {
+                    ArcAtmosphereBackground(
+                        tint: exploreAtmosphere.tint,
+                        referenceImage: exploreAtmosphere.referenceImage,
+                        isLightMode: arcSettings.isLightMode,
+                        dotGridOpacity: arcSettings.dotGridOpacity,
+                        useNoise: true,
+                        grainIntensity: arcSettings.exploreGrainWallpaper
+                    )
+                    .ignoresSafeArea()
+                }
 
                 scrollContent(
                     width: geometry.size.width,
@@ -182,7 +187,7 @@ struct WallpaperExploreContentView: View {
     private func scrollContent(width: CGFloat, viewportHeight: CGFloat, gridConfig: WallpaperGridConfig) -> some View {
         return ZStack {
             if visibleWallpapers.isEmpty {
-                legacyScrollContent(width: width, body: AnyView(
+                legacyScrollContent(width: width) {
                     Group {
                         if isWallpaperLoadingState {
                             loadingState
@@ -191,7 +196,7 @@ struct WallpaperExploreContentView: View {
                         }
                     }
                     .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                ))
+                }
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
@@ -226,7 +231,7 @@ struct WallpaperExploreContentView: View {
         }
     }
 
-    private func legacyScrollContent(width: CGFloat, body: AnyView) -> some View {
+    private func legacyScrollContent<Content: View>(width: CGFloat, @ViewBuilder body: () -> Content) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 heroSection
@@ -235,7 +240,7 @@ struct WallpaperExploreContentView: View {
                 activeFiltersSection
                 contentHeader
                     .padding(.top, 12)
-                body
+                body()
             }
             .padding(.horizontal, 28)
             .padding(.top, 80)
@@ -323,38 +328,29 @@ struct WallpaperExploreContentView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(arcSettings.secondaryText.opacity(0.85))
 
-                Text(WallpaperSourceManager.shared.activeSource.displayName)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(arcSettings.primaryText.opacity(0.75))
-                    .padding(.horizontal, 8)
-                    .frame(height: 20)
-                    .exploreFrostedCapsule(
-                        tint: exploreAtmosphere.tint.primary,
-                        material: .ultraThinMaterial,
-                        tintLayerOpacity: 0.06
-                    )
-
-                // 切换源按钮
-                Button {
-                    let nextSource: WallpaperSourceManager.SourceType = WallpaperSourceManager.shared.activeSource == .wallhaven ? .fourKWallpapers : .wallhaven
-                    WallpaperSourceManager.shared.switchTo(nextSource)
+                // 源切换 Menu（支持扩展更多源）
+                Menu {
+                    ForEach(WallpaperSourceManager.SourceType.allCases, id: \.self) { source in
+                        Button {
+                            WallpaperSourceManager.shared.switchTo(source)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text(source.displayName)
+                                    .font(.system(size: 13, weight: .semibold))
+                                if source == WallpaperSourceManager.shared.activeSource {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 11, weight: .bold))
+                                }
+                            }
+                        }
+                    }
                 } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 11, weight: .semibold))
+                    Text(WallpaperSourceManager.shared.activeSource.displayName)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundStyle(arcSettings.primaryText.opacity(0.75))
-                        .frame(width: 24, height: 20)
-                        .exploreFrostedCapsule(
-                            tint: exploreAtmosphere.tint.primary,
-                            material: .ultraThinMaterial,
-                            tintLayerOpacity: 0.06
-                        )
                 }
-                .buttonStyle(.plain)
-                .help("切换到 \(WallpaperSourceManager.shared.activeSource == .wallhaven ? "4K Wallpapers" : "WallHaven")")
-                .sourceSwitchTooltip(
-                    key: "wallpaper_source_switch_tooltip_shown",
-                    message: "点击这里切换壁纸源"
-                )
+                .menuStyle(.borderlessButton)
+                .offset(y: 1.5)
             }
 
             Text(t("wallpaperLibrary"))
@@ -386,8 +382,10 @@ struct WallpaperExploreContentView: View {
                 showWallpaperURLSheet = true
             }
 
-            ArcBackgroundPanelButton(tint: exploreAtmosphere.tint.primary, grainIntensity: $arcSettings.exploreGrainWallpaper) {
-                randomizeAtmosphere()
+            if !arcSettings.compactMode {
+                ArcBackgroundPanelButton(tint: exploreAtmosphere.tint.primary, grainIntensity: $arcSettings.exploreGrainWallpaper) {
+                    randomizeAtmosphere()
+                }
             }
 
             ResetFiltersButton(tint: exploreAtmosphere.tint.secondary) {

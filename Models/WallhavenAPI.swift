@@ -162,7 +162,7 @@ enum WallhavenAPI {
         }
 
         if !parameters.includeFields.isEmpty {
-            queryItems.append(URLQueryItem(name: "includeFields", value: parameters.includeFields.joined(separator: ",")))
+            queryItems.append(URLQueryItem(name: "include_fields", value: parameters.includeFields.joined(separator: ",")))
         }
 
         components?.queryItems = queryItems

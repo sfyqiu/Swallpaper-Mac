@@ -56,19 +56,24 @@ struct AnimeExploreView: View {
             let contentWidth = calculateContentWidth(geometry: geometry)
 
             ZStack {
-                ArcAtmosphereBackground(
-                    tint: exploreAtmosphere.tint,
-                    referenceImage: exploreAtmosphere.referenceImage,
-                    isLightMode: arcSettings.isLightMode,
-                    dotGridOpacity: arcSettings.dotGridOpacity,
-                    useNoise: true,
-                    grainIntensity: arcSettings.exploreGrainAnime
-                )
-                .ignoresSafeArea()
+                if arcSettings.compactMode {
+                    arcSettings.compactBackground
+                        .ignoresSafeArea()
+                } else {
+                    ArcAtmosphereBackground(
+                        tint: exploreAtmosphere.tint,
+                        referenceImage: exploreAtmosphere.referenceImage,
+                        isLightMode: arcSettings.isLightMode,
+                        dotGridOpacity: arcSettings.dotGridOpacity,
+                        useNoise: true,
+                        grainIntensity: arcSettings.exploreGrainAnime
+                    )
+                    .ignoresSafeArea()
+                }
 
                 ZStack {
                     if viewModel.animeItems.isEmpty {
-                        legacyScrollContent(width: geometry.size.width, contentWidth: contentWidth, body: AnyView(
+                        legacyScrollContent(width: geometry.size.width, contentWidth: contentWidth) {
                             Group {
                                 if isAnimeLoadingState {
                                     loadingState
@@ -77,7 +82,7 @@ struct AnimeExploreView: View {
                                 }
                             }
                             .transition(.opacity.animation(.easeInOut(duration: 0.25)))
-                        ))
+                        }
                     } else {
                         ScrollView(.vertical, showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 0) {
@@ -135,7 +140,7 @@ struct AnimeExploreView: View {
 
     // MARK: - Legacy scroll wrapper (skeleton / empty state)
 
-    private func legacyScrollContent(width: CGFloat, contentWidth: CGFloat, body: AnyView) -> some View {
+    private func legacyScrollContent<Content: View>(width: CGFloat, contentWidth: CGFloat, @ViewBuilder body: () -> Content) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 heroSection
@@ -143,7 +148,7 @@ struct AnimeExploreView: View {
                 hotTagsSection
                 contentHeader
                     .padding(.top, 12)
-                body
+                body()
             }
             .padding(.horizontal, 28)
             .padding(.top, 80)
@@ -255,8 +260,10 @@ struct AnimeExploreView: View {
                 onClear: clearSearch
             )
 
-            ArcBackgroundPanelButton(tint: exploreAtmosphere.tint.primary, grainIntensity: $arcSettings.exploreGrainAnime) {
-                randomizeAtmosphere()
+            if !arcSettings.compactMode {
+                ArcBackgroundPanelButton(tint: exploreAtmosphere.tint.primary, grainIntensity: $arcSettings.exploreGrainAnime) {
+                    randomizeAtmosphere()
+                }
             }
 
             ResetFiltersButton(tint: exploreAtmosphere.tint.secondary) {

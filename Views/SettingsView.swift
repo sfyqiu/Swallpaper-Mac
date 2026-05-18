@@ -191,6 +191,7 @@ struct SettingsView: View {
 // MARK: - 通用设置标签
 private struct GeneralSettingsTab: View {
     @ObservedObject var viewModel: SettingsViewModel
+    @ObservedObject private var arcSettings = ArcBackgroundSettings.shared
     @State private var showClearCacheAlert = false
     @State private var importProfileURL = ""
 
@@ -253,7 +254,7 @@ private struct GeneralSettingsTab: View {
                 MacSettingsRow(
                     title: t("grainTextureEffect"),
                     subtitle: t("grainTextureEffectDesc"),
-                    showDivider: viewModel.grainTextureEnabled
+                    showDivider: true
                 ) {
                     MacToggle(isOn: $viewModel.grainTextureEnabled)
                 }
@@ -277,6 +278,14 @@ private struct GeneralSettingsTab: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
+                }
+
+                MacSettingsRow(
+                    title: t("compactMode"),
+                    subtitle: t("compactModeDesc"),
+                    showDivider: false
+                ) {
+                    MacToggle(isOn: $arcSettings.compactMode)
                 }
             }
 
@@ -560,8 +569,8 @@ private struct DownloadSettingsTab: View {
                         HStack(spacing: 4) {
                             if isRepairing {
                                 ProgressView()
-                                    .scaleEffect(0.6)
-                                    .frame(width: 14, height: 14)
+                                    .controlSize(.small)
+                                    .scaleEffect(0.7)
                             }
                             Text(isRepairing ? t("repairing") : t("repair"))
                         }
@@ -641,30 +650,8 @@ private struct SchedulerSettingsTab: View {
         NSScreen.screens
     }
 
-    private var schedulerEnabledBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.schedulerViewModel.isRunning },
-            set: { newValue in
-                if viewModel.schedulerViewModel.isRunning != newValue {
-                    viewModel.schedulerViewModel.toggleScheduler()
-                }
-            }
-        )
-    }
-
     var body: some View {
         MacSettingsForm {
-            // 开关组
-            MacSettingsSection(header: t("autoReplace")) {
-                MacSettingsRow(
-                    title: t("enableAutoReplace"),
-                    subtitle: viewModel.schedulerViewModel.isRunning ? t("currentlyRunning") : t("currentlyStopped"),
-                    showDivider: false
-                ) {
-                    MacToggle(isOn: schedulerEnabledBinding)
-                }
-            }
-
             // 每屏配置
             MacSettingsSection(header: t("scheduleConfig")) {
                 ForEach(Array(screens.enumerated()), id: \.offset) { index, screen in
@@ -690,6 +677,14 @@ private struct SchedulerSettingsTab: View {
                         if displayConfig.isEnabled {
                             dividerLine
 
+                            // 检查当前壁纸是否是 Web 壁纸
+                            let isWebWallpaper: Bool = {
+                                if let screen = NSScreen.screens.first(where: { $0.wallpaperScreenIdentifier == screenID }) {
+                                    return WallpaperEngineXBridge.shared.isManaging(screen: screen)
+                                }
+                                return false
+                            }()
+
                             // 间隔选择
                             HStack(spacing: 12) {
                                 Text(t("replaceInterval"))
@@ -702,6 +697,13 @@ private struct SchedulerSettingsTab: View {
                                     ForEach(SchedulerConfig.intervalOptions, id: \.self) { minutes in
                                         Button(intervalLabel(for: minutes)) {
                                             viewModel.schedulerViewModel.updateDisplayInterval(minutes, for: screenID)
+                                        }
+                                    }
+                                    // 只有当内容类型包含媒体且当前不是 Web 壁纸时，才显示"播完即换"选项
+                                    if displayConfig.includeMedia && !isWebWallpaper {
+                                        Divider()
+                                        Button(intervalLabel(for: SchedulerConfig.intervalOnEndMinutes)) {
+                                            viewModel.schedulerViewModel.updateDisplayInterval(SchedulerConfig.intervalOnEndMinutes, for: screenID)
                                         }
                                     }
                                 } label: {
@@ -750,7 +752,9 @@ private struct SchedulerSettingsTab: View {
                                 HStack(spacing: 16) {
                                     Toggle(isOn: Binding(
                                         get: { displayConfig.includeWallpapers },
-                                        set: { viewModel.schedulerViewModel.updateDisplayIncludeWallpapers($0, for: screenID) }
+                                        set: { newValue in
+                                            viewModel.schedulerViewModel.updateDisplayIncludeWallpapers(newValue, for: screenID)
+                                        }
                                     )) {
                                         Text(t("wallpapers"))
                                             .font(.system(size: 12))
@@ -760,7 +764,14 @@ private struct SchedulerSettingsTab: View {
 
                                     Toggle(isOn: Binding(
                                         get: { displayConfig.includeMedia },
-                                        set: { viewModel.schedulerViewModel.updateDisplayIncludeMedia($0, for: screenID) }
+                                        set: { newValue in
+                                            // 如果用户取消媒体选择且当前是"播完即换"模式，自动切换回默认间隔
+                                            // 因为"播完即换"只支持纯媒体模式
+                                            if !newValue && displayConfig.isOnEndMode {
+                                                viewModel.schedulerViewModel.updateDisplayInterval(SchedulerConfig.intervalOptions.first ?? 60, for: screenID)
+                                            }
+                                            viewModel.schedulerViewModel.updateDisplayIncludeMedia(newValue, for: screenID)
+                                        }
                                     )) {
                                         Text(t("media"))
                                             .font(.system(size: 12))
@@ -789,6 +800,9 @@ private struct SchedulerSettingsTab: View {
     }
 
     private func intervalLabel(for minutes: Int) -> String {
+        if minutes == SchedulerConfig.intervalOnEndMinutes {
+            return t("intervalOnEnd")
+        }
         switch minutes {
         case 1: return "1 \(t("minutes"))"
         case 5: return "5 \(t("minutes"))"
@@ -961,7 +975,6 @@ private struct AboutSettingsTab: View {
                             if viewModel.isCheckingUpdate || viewModel.updateChecker.isChecking {
                                 ProgressView()
                                     .controlSize(.small)
-                                    .scaleEffect(0.8)
                             }
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 12))
@@ -1097,7 +1110,6 @@ struct SettingsUpdateSection: View {
                             if viewModel.isCheckingUpdate || updateChecker.isChecking {
                                 ProgressView()
                                     .controlSize(.small)
-                                    .scaleEffect(0.8)
                             }
                             Image(systemName: "arrow.clockwise")
                                 .font(.system(size: 12))

@@ -70,10 +70,16 @@ final class VideoWallpaperManager: ObservableObject {
     /// 启动淡入超时工作项（key: screenID）
     private var fadeInTimeouts: [String: DispatchWorkItem] = [:]
 
+    /// "播完即换"模式下的播放器播放结束观察者（key: screenID）
+    private var playbackEndObservers: [String: Any] = [:]
+
     /// 应挂载 MP4 壁纸层的屏幕 ID（`NSScreen.wallpaperScreenIdentifier`）。唤醒 / 分辨率变化时全局 `rebuildWindows()` 只重建这些屏，避免「只设一块屏动态」却给所有显示器都建了视频窗。
     private var videoTargetScreenIDs = Set<String>()
     /// 应挂载 MP4 壁纸层的物理显示器指纹。不要在显示器断开时清理，重连后靠它找回目标屏。
     private var videoTargetScreenFingerprints = Set<String>()
+
+    /// 标记哪些屏幕使用"播完即换"模式（key: screenID）
+    private var onEndModeScreens = Set<String>()
 
     /// 用于 poster 文件名的交替槽位，避免 macOS 桌面壁纸缓存旧图
     private var posterSlot = 0
@@ -130,6 +136,8 @@ final class VideoWallpaperManager: ObservableObject {
     // 防止重复重建（@MainActor 保证串行访问，无需 NSLock）
     private var isRebuilding = false
     private var pendingRebuildWorkItem: DispatchWorkItem?
+    /// 独立于 screenParametersChanged 的唤醒重建 work item，防止唤醒时序竞争
+    private var pendingWakeRebuildWorkItem: DispatchWorkItem?
     private var lastAppliedScreenConfigurations: [ScreenConfigurationSignature] = []
 
     private init() {
@@ -196,6 +204,8 @@ final class VideoWallpaperManager: ObservableObject {
         DistributedNotificationCenter.default.removeObserver(self)
         pendingRebuildWorkItem?.cancel()
         pendingRebuildWorkItem = nil
+        pendingWakeRebuildWorkItem?.cancel()
+        pendingWakeRebuildWorkItem = nil
     }
 
     func applyVideoWallpaper(from localFileURL: URL, posterURL: URL? = nil, muted: Bool = true, targetScreens: [NSScreen]?) throws {
@@ -217,8 +227,15 @@ final class VideoWallpaperManager: ObservableObject {
             throw NSError(domain: "VideoWallpaper", code: 1002, userInfo: [NSLocalizedDescriptionKey: "视频文件不存在。"])
         }
 
-        // 本机视频不经过 CLI：切换前始终向 CLI 发 stop，避免叠层或桥接状态与进程不同步
-        WallpaperEngineXBridge.shared.ensureStoppedForNonCLIWallpaper()
+        // 本机视频不经过 CLI：如果设到全局或目标屏幕恰好被 CLI 管理时 stop CLI。
+        // 多屏场景下，如果 CLI 正在渲染另一块屏的壁纸而本屏不需要 CLI，不杀 CLI 进程。
+        if let targetScreen {
+            if WallpaperEngineXBridge.shared.isManaging(screen: targetScreen) {
+                WallpaperEngineXBridge.shared.ensureStoppedForNonCLIWallpaper()
+            }
+        } else {
+            WallpaperEngineXBridge.shared.ensureStoppedForNonCLIWallpaper()
+        }
 
         let isNewVideo = currentVideoURL != localFileURL
         let activeScreenIDs = Set(windows.keys)
@@ -512,6 +529,12 @@ final class VideoWallpaperManager: ObservableObject {
         playerItemObservers.removeAll()
         fadeInTimeouts.values.forEach { $0.cancel() }
         fadeInTimeouts.removeAll()
+        // 清理播放结束观察者（播完即换模式）
+        for observer in playbackEndObservers.values {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        playbackEndObservers.removeAll()
+        onEndModeScreens.removeAll()
 
         for window in windows.values {
             if let contentView = window.contentView as? WallpaperVideoContainerView {
@@ -617,6 +640,12 @@ final class VideoWallpaperManager: ObservableObject {
         playerItemObservers.removeValue(forKey: screenID)
         fadeInTimeouts[screenID]?.cancel()
         fadeInTimeouts.removeValue(forKey: screenID)
+        // 清理播放结束观察者
+        if let observer = playbackEndObservers[screenID] {
+            NotificationCenter.default.removeObserver(observer)
+            playbackEndObservers.removeValue(forKey: screenID)
+        }
+        onEndModeScreens.remove(screenID)
     }
 
     // MARK: - 锁屏壁纸管理
@@ -948,11 +977,22 @@ final class VideoWallpaperManager: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             // 屏幕唤醒时防抖重建
-            self.pendingRebuildWorkItem?.cancel()
+            self.pendingWakeRebuildWorkItem?.cancel()
             let workItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
-                if self.hasActiveVideoWallpaper, self.windows.isEmpty {
-                    try? self.rebuildWindows()
+                if self.hasActiveVideoWallpaper {
+                    if self.windows.isEmpty {
+                        try? self.rebuildWindows()
+                    } else {
+                        // 针对缺少窗口的目标屏幕单独重建，避免多屏场景下部分显示器唤醒后被跳过
+                        let targetScreens = self.screensForVideoWallpaperTargets()
+                        for screen in targetScreens {
+                            let screenID = screen.wallpaperScreenIdentifier
+                            if self.windows[screenID] == nil {
+                                try? self.rebuildWindows(targetScreen: screen)
+                            }
+                        }
+                    }
                 }
                 // 只有非手动暂停时才恢复播放
                 if !self.isPaused {
@@ -963,8 +1003,30 @@ final class VideoWallpaperManager: ObservableObject {
                 }
                 // 重新评估自动暂停状态，避免 AutoPause 之前暂停的屏幕被错误恢复
                 DynamicWallpaperAutoPauseManager.shared.reevaluateCurrentState()
+
+                // 二次延迟重建：外接显示器可能 1~3 秒后才被 macOS 完全枚举
+                // 记录当前缺失指纹的屏幕，稍后重试
+                let missingFingerprints = self.videoTargetScreenFingerprints.subtracting(
+                    Set(NSScreen.screens.map { $0.wallpaperScreenFingerprint })
+                )
+                if !missingFingerprints.isEmpty {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                        guard let self = self, self.hasActiveVideoWallpaper else { return }
+                        self.relinkDisplayStateForCurrentScreens()
+                        let retryScreens = NSScreen.screens.filter { screen in
+                            missingFingerprints.contains(screen.wallpaperScreenFingerprint) &&
+                            self.windows[screen.wallpaperScreenIdentifier] == nil
+                        }
+                        for screen in retryScreens {
+                            try? self.rebuildWindows(targetScreen: screen)
+                        }
+                        if !retryScreens.isEmpty {
+                            NSLog("[VideoWallpaperManager] Retry rebuild for \\(retryScreens.count) late-appearing screen(s) after screensWake")
+                        }
+                    }
+                }
             }
-            self.pendingRebuildWorkItem = workItem
+            self.pendingWakeRebuildWorkItem = workItem
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
         }
     }
@@ -984,11 +1046,22 @@ final class VideoWallpaperManager: ObservableObject {
         // 系统唤醒后防抖重建并恢复播放
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.pendingRebuildWorkItem?.cancel()
+            self.pendingWakeRebuildWorkItem?.cancel()
             let workItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
-                if self.hasActiveVideoWallpaper, self.windows.isEmpty {
-                    try? self.rebuildWindows()
+                if self.hasActiveVideoWallpaper {
+                    if self.windows.isEmpty {
+                        try? self.rebuildWindows()
+                    } else {
+                        // 针对缺少窗口的目标屏幕单独重建，避免多屏场景下部分显示器唤醒后被跳过
+                        let targetScreens = self.screensForVideoWallpaperTargets()
+                        for screen in targetScreens {
+                            let screenID = screen.wallpaperScreenIdentifier
+                            if self.windows[screenID] == nil {
+                                try? self.rebuildWindows(targetScreen: screen)
+                            }
+                        }
+                    }
                 }
                 if !self.isPaused {
                     for (screenID, player) in self.players {
@@ -998,8 +1071,29 @@ final class VideoWallpaperManager: ObservableObject {
                 }
                 // 唤醒后立即重新评估自动暂停状态，避免 AutoPause 之前暂停的屏幕被错误恢复导致闪烁
                 DynamicWallpaperAutoPauseManager.shared.reevaluateCurrentState()
+
+                // 二次延迟重建：外接显示器可能 1~3 秒后才被 macOS 完全枚举
+                let missingFingerprints = self.videoTargetScreenFingerprints.subtracting(
+                    Set(NSScreen.screens.map { $0.wallpaperScreenFingerprint })
+                )
+                if !missingFingerprints.isEmpty {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                        guard let self = self, self.hasActiveVideoWallpaper else { return }
+                        self.relinkDisplayStateForCurrentScreens()
+                        let retryScreens = NSScreen.screens.filter { screen in
+                            missingFingerprints.contains(screen.wallpaperScreenFingerprint) &&
+                            self.windows[screen.wallpaperScreenIdentifier] == nil
+                        }
+                        for screen in retryScreens {
+                            try? self.rebuildWindows(targetScreen: screen)
+                        }
+                        if !retryScreens.isEmpty {
+                            NSLog("[VideoWallpaperManager] Retry rebuild for \\(retryScreens.count) late-appearing screen(s) after systemWake")
+                        }
+                    }
+                }
             }
-            self.pendingRebuildWorkItem = workItem
+            self.pendingWakeRebuildWorkItem = workItem
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
         }
     }
@@ -1113,9 +1207,18 @@ final class VideoWallpaperManager: ObservableObject {
                     NSLog("[VideoWallpaperManager] Missing video URL for target screen \(targetScreenID)")
                     return
                 }
+
+                // 检查该屏幕是否使用"播完即换"模式
+                let schedulerConfig = WallpaperSchedulerService.shared.config.resolvedDisplayConfig(for: targetScreenID)
+                let isOnEndMode = schedulerConfig.isEnabled && schedulerConfig.isOnEndMode
+
                 let hdrEnabled = UserDefaults.standard.object(forKey: "hdr_enabled") as? Bool ?? true
-                let components = makePlayerComponents(for: targetScreen, videoURL: videoURL, muted: isMuted, hdrEnabled: hdrEnabled)
-                self.loopers[targetScreenID] = components.looper
+                let components = makePlayerComponents(for: targetScreen, videoURL: videoURL, muted: isMuted, hdrEnabled: hdrEnabled, enableLooping: !isOnEndMode)
+                if let looper = components.looper {
+                    self.loopers[targetScreenID] = looper
+                } else {
+                    loopers.removeValue(forKey: targetScreenID)
+                }
 
                 // 3. 无缝替换：直接修改 playerLayer.player，窗口始终停留在桌面层级
                 containerView.playerLayer.player = components.player
@@ -1132,6 +1235,19 @@ final class VideoWallpaperManager: ObservableObject {
 
                 // 4. 更新字典
                 players[targetScreenID] = components.player
+
+                // 5. 如果是"播完即换"模式，设置播放完成观察者
+                if isOnEndMode {
+                    onEndModeScreens.insert(targetScreenID)
+                    setupPlaybackEndObserver(for: targetScreenID, player: components.player, item: components.item)
+                } else {
+                    onEndModeScreens.remove(targetScreenID)
+                    // 清理旧的播放结束观察者
+                    if let observer = playbackEndObservers[targetScreenID] {
+                        NotificationCenter.default.removeObserver(observer)
+                        playbackEndObservers.removeValue(forKey: targetScreenID)
+                    }
+                }
 
                 NSLog("[VideoWallpaperManager] Seamlessly replaced player for screen \(targetScreenID)")
             } else {
@@ -1258,7 +1374,13 @@ final class VideoWallpaperManager: ObservableObject {
     }
 
     /// 创建并配置 AVPlayer + AVPlayerLooper，供 `createWindow` 与窗口复用路径共享。
-    private func makePlayerComponents(for screen: NSScreen, videoURL: URL, muted: Bool, hdrEnabled: Bool = true) -> (player: AVQueuePlayer, looper: AVPlayerLooper, item: AVPlayerItem) {
+    /// - Parameters:
+    ///   - screen: 目标屏幕
+    ///   - videoURL: 视频文件 URL
+    ///   - muted: 是否静音
+    ///   - hdrEnabled: 是否启用 HDR
+    ///   - enableLooping: 是否启用循环播放（"播完即换"模式下为 false）
+    private func makePlayerComponents(for screen: NSScreen, videoURL: URL, muted: Bool, hdrEnabled: Bool = true, enableLooping: Bool = true) -> (player: AVQueuePlayer, looper: AVPlayerLooper?, item: AVPlayerItem) {
         let playerItem = AVPlayerItem(url: videoURL)
 
         // HDR 关闭时强制 SDR 渲染
@@ -1288,7 +1410,10 @@ final class VideoWallpaperManager: ObservableObject {
         queuePlayer.automaticallyWaitsToMinimizeStalling = !videoURL.isFileURL
         queuePlayer.preventsDisplaySleepDuringVideoPlayback = false
 
-        let looper = AVPlayerLooper(player: queuePlayer, templateItem: playerItem)
+        var looper: AVPlayerLooper? = nil
+        if enableLooping {
+            looper = AVPlayerLooper(player: queuePlayer, templateItem: playerItem)
+        }
         queuePlayer.insert(playerItem, after: nil)
 
         return (queuePlayer, looper, playerItem)
@@ -1332,12 +1457,20 @@ final class VideoWallpaperManager: ObservableObject {
         containerView.autoresizingMask = [.width, .height]
         window.contentView = containerView
 
+        // 检查该屏幕是否使用"播完即换"模式
+        let schedulerConfig = WallpaperSchedulerService.shared.config.resolvedDisplayConfig(for: screenID)
+        let isOnEndMode = schedulerConfig.isEnabled && schedulerConfig.isOnEndMode
+
         // 统一使用 AVPlayerLooper 简单循环播放原视频，不做 crossfade composition。
         // 复杂的首尾帧 crossfade 渲染逻辑已保留在 makeLoopingCompositionItem / exportLoopedVideo 中，
         // 待后续增加用户手动开关后再决定是否恢复调用。
         let hdrEnabled = UserDefaults.standard.object(forKey: "hdr_enabled") as? Bool ?? true
-        let components = makePlayerComponents(for: screen, videoURL: videoURL, muted: muted, hdrEnabled: hdrEnabled)
-        self.loopers[screenID] = components.looper
+        let components = makePlayerComponents(for: screen, videoURL: videoURL, muted: muted, hdrEnabled: hdrEnabled, enableLooping: !isOnEndMode)
+        if let looper = components.looper {
+            self.loopers[screenID] = looper
+        } else {
+            loopers.removeValue(forKey: screenID)
+        }
 
         containerView.playerLayer.player = components.player
         containerView.playerLayer.videoGravity = .resizeAspectFill
@@ -1395,6 +1528,44 @@ final class VideoWallpaperManager: ObservableObject {
         }
         fadeInTimeouts[screenID] = timeout
         DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: timeout)
+
+        // 如果是"播完即换"模式，添加视频播放完成的观察者
+        if isOnEndMode {
+            onEndModeScreens.insert(screenID)
+            setupPlaybackEndObserver(for: screenID, player: components.player, item: components.item)
+        } else {
+            onEndModeScreens.remove(screenID)
+            // 清理旧的播放结束观察者
+            if let observer = playbackEndObservers[screenID] {
+                NotificationCenter.default.removeObserver(observer)
+                playbackEndObservers.removeValue(forKey: screenID)
+            }
+        }
+    }
+
+    /// 为"播完即换"模式设置视频播放完成观察者
+    private func setupPlaybackEndObserver(for screenID: String, player: AVQueuePlayer, item: AVPlayerItem) {
+        // 移除旧的观察者
+        if let oldObserver = playbackEndObservers[screenID] {
+            NotificationCenter.default.removeObserver(oldObserver)
+            playbackEndObservers.removeValue(forKey: screenID)
+        }
+
+        let observer = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: item,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            // 发送视频播放完成通知
+            DistributedNotificationCenter.default().postNotificationName(
+                WallpaperSchedulerService.videoPlaybackEndedNotification,
+                object: nil,
+                userInfo: ["screenID": screenID],
+                deliverImmediately: true
+            )
+        }
+        playbackEndObservers[screenID] = observer
     }
 
     private func teardownAllWindows() {
@@ -1408,6 +1579,12 @@ final class VideoWallpaperManager: ObservableObject {
         playerItemObservers.removeAll()
         fadeInTimeouts.values.forEach { $0.cancel() }
         fadeInTimeouts.removeAll()
+        // 清理播放结束观察者
+        for observer in playbackEndObservers.values {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        playbackEndObservers.removeAll()
+        onEndModeScreens.removeAll()
 
         // 1. 先断开所有 playerLayer 与 player 的关联，避免渲染层持有已释放的 player
         for window in windows.values {

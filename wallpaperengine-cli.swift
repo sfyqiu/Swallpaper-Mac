@@ -1640,6 +1640,9 @@ private final class DesktopWallpaperManager {
                 guard let self = self else { return }
                 print("[DesktopWallpaperManager] Web wallpaper load result: \(success)")
                 if !success {
+                    let msg = "Web 壁纸渲染引擎加载失败，可能因资源不完整或浏览器引擎初始化错误"
+                    dlog("[DesktopWallpaperManager] Web wallpaper load failed: \(msg)")
+                    self.lastErrorMessage = msg
                     self.isRunning = false
                     self.isWebMode = false
                     self.currentWallpaperPath = nil
@@ -1681,6 +1684,7 @@ private final class DesktopWallpaperManager {
 
         func complete(success: Bool) {
             guard loadGen == sceneLoadGeneration, currentWallpaperPath == path else {
+                if !success { lastErrorMessage = "场景渲染期间壁纸路径或加载批次已变更" }
                 completion?(false)
                 return
             }
@@ -1689,6 +1693,8 @@ private final class DesktopWallpaperManager {
                 applyCaptureAsDesktopWallpaper(screen: screen)
                 // 不再持续推送：scene 由 OpenGL 窗口直接渲染，锁屏/静态桌面只保留首帧
             } else {
+                lastErrorMessage = "场景渲染器超时或截图失败，可能是 GPU/内存资源不足或壁纸资源损坏"
+                dlog("[DesktopWallpaperManager] Scene first capture failed: \(lastErrorMessage ?? "")")
                 isRunning = false
                 isWebMode = false
                 currentWallpaperPath = nil
@@ -2297,7 +2303,7 @@ private final class Daemon: NSObject, NSApplicationDelegate {
                             } else if let err = DesktopWallpaperManager.shared.lastErrorMessage {
                                 sendResponse("ERROR:\(err)")
                             } else {
-                                sendResponse("ERROR:壁纸渲染失败，请尝试其他壁纸")
+                                sendResponse("ERROR:壁纸渲染失败，请尝试其他壁纸（查看 /tmp/wallpaperengine-cli-daemon.log 获取详情）")
                             }
                         }
                     } else {

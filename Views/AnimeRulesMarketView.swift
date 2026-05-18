@@ -250,8 +250,8 @@ private struct RuleMarketItem: View {
             } label: {
                 if isProcessing {
                     ProgressView()
-                        .scaleEffect(0.6)
-                        .frame(width: 20, height: 20)
+                        .controlSize(.small)
+                        .scaleEffect(0.8)
                 } else {
                     Text(isInstalled ? "卸载" : "安装")
                         .font(.system(size: 12, weight: .medium))
@@ -270,4 +270,3 @@ private struct RuleMarketItem: View {
         .padding(.vertical, 4)
     }
 }
-

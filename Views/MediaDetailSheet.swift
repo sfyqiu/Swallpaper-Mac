@@ -32,6 +32,13 @@ struct MediaDetailSheet: View {
     @State private var pendingSteamGuardCode = ""
     @State private var isBakingScene = false
 
+    // MARK: - 作者壁纸弹窗相关
+    @State private var showAuthorSheet = false
+    @State private var authorMediaItems: [MediaItem] = []
+    @State private var isLoadingAuthorItems = false
+    @State private var authorItemsPage = 1
+    @State private var hasMoreAuthorItems = true
+
     // MARK: - 键盘快捷键与滑动动画
     @State private var keyboardMonitor: Any?
     @State private var slideIncomingOffset: CGFloat = 0
@@ -45,6 +52,7 @@ struct MediaDetailSheet: View {
     @State private var sceneBakeStatusFlash: String?
     @State private var sharePickerAnchorView: NSView?
     @State private var showCopyLinkToast = false
+    @State private var showMoreOptionsPopover = false
 
     // 挤压动画配置
     private let squeezeThreshold: CGFloat = 80
@@ -240,6 +248,7 @@ struct MediaDetailSheet: View {
                         .padding(.bottom, 28)
                     }
                 }
+
             }
             .overlay(alignment: .bottom) {
                 if showCopyLinkToast {
@@ -283,6 +292,9 @@ struct MediaDetailSheet: View {
             Button(t("cancel"), role: .cancel) {}
         } message: {
             Text(t("deleteConfirmMessage"))
+        }
+        .overlay {
+            authorSheetOverlay
         }
         .alert("Steam 登录已过期", isPresented: $showSessionExpiredAlert) {
             Button("确定", role: .cancel) {}
@@ -544,8 +556,11 @@ struct MediaDetailSheet: View {
             (t("source"), resolvedItem.sourceName)
         ]
 
-        // Workshop 源显示丰富的元数据胶囊（订阅、浏览、评分、大小、类型）
+        // Workshop 源显示丰富的元数据胶囊（作者、订阅、浏览、评分、大小、类型）
         if resolvedItem.sourceName == t("wallpaperEngine") {
+            if let author = resolvedItem.authorName {
+                items.append((t("author"), author))
+            }
             items.append((t("fileType"), resolvedItem.resolutionLabel))
             if let subs = resolvedItem.subscriptionCount, subs > 0 {
                 items.append((t("subscriptions"), formatCount(subs)))
@@ -594,11 +609,29 @@ struct MediaDetailSheet: View {
 
     private var metadataCapsules: some View {
         ForEach(Array(metadataItems.enumerated()), id: \.offset) { index, item in
-            detailMetaCapsule(
-                label: item.label,
-                value: item.value,
-                isLast: index == metadataItems.count - 1
-            )
+            if item.label == t("author"),
+               resolvedItem.sourceName == t("wallpaperEngine"),
+               resolvedItem.authorSteamID != nil {
+                Button {
+                    openAuthorSheet()
+                } label: {
+                    detailMetaCapsule(
+                        label: item.label,
+                        value: item.value,
+                        isLast: index == metadataItems.count - 1
+                    )
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+            } else {
+                detailMetaCapsule(
+                    label: item.label,
+                    value: item.value,
+                    isLast: index == metadataItems.count - 1
+                )
+            }
         }
     }
 
@@ -654,6 +687,15 @@ struct MediaDetailSheet: View {
             }
         }
         .padding(.top, 4)
+    }
+
+    /// 重新烘焙：清除已有缓存后重新执行烘焙
+    private func reBakeScene() {
+        guard let record = currentDownloadRecord else { return }
+        // 清除现有烘焙产物
+        mediaLibrary.clearSceneBakeArtifact(itemID: record.item.id)
+        // 执行完整烘焙
+        runSceneOfflineBake()
     }
 
     private func runSceneOfflineBake() {
@@ -793,34 +835,22 @@ struct MediaDetailSheet: View {
                 .buttonStyle(.plain)
                 .disabled(isDownloading || isAlreadyDownloaded)
 
-                if isAlreadyDownloaded {
-                    Button {
-                        shareDownloadedMediaFile()
-                    } label: {
-                        DetailSheetCircleIconLabel(systemName: "square.and.arrow.up")
-                            .detailGlassCircleChrome()
-                    }
-                    .buttonStyle(.plain)
-                    .help(t("shareLocalFile"))
-                    .background {
-                        SharePickerAnchorReader { sharePickerAnchorView = $0 }
-                    }
-                }
-
                 Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(resolvedItem.pageURL.absoluteString, forType: .string)
-                    showCopyLinkToast = true
-                    Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 2_000_000_000)
-                        showCopyLinkToast = false
-                    }
+                    showMoreOptionsPopover = true
                 } label: {
-                    DetailSheetCircleIconLabel(systemName: "link")
+                    DetailSheetCircleIconLabel(systemName: "ellipsis")
                         .detailGlassCircleChrome()
                 }
                 .buttonStyle(.plain)
-                .help("复制链接")
+                .help("更多选项")
+                .background(
+                    SharePickerAnchorReader { anchor in
+                        sharePickerAnchorView = anchor
+                    }
+                )
+                .popover(isPresented: $showMoreOptionsPopover, arrowEdge: .bottom) {
+                    morePopoverMenuContent
+                }
 
                 dividerLine
                     .frame(width: 70)
@@ -845,6 +875,93 @@ struct MediaDetailSheet: View {
                 )
             )
             .frame(height: 1)
+    }
+
+    // MARK: - 液态玻璃更多菜单
+    @ViewBuilder
+    private var morePopoverMenuContent: some View {
+        VStack(spacing: 0) {
+            if isAlreadyDownloaded {
+                Button {
+                    // 不关闭菜单，保持锚点有效
+                    shareDownloadedMediaFile()
+                } label: {
+                    HStack {
+                        Image(systemName: "square.and.arrow.up")
+                        Text(t("shareLocalFile"))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .background(
+                    Rectangle()
+                        .fill(Color.white.opacity(0.15))
+                        .frame(height: 1),
+                    alignment: .bottom
+                )
+
+                Button {
+                    showMoreOptionsPopover = false
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(resolvedItem.pageURL.absoluteString, forType: .string)
+                    showCopyLinkToast = true
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        showCopyLinkToast = false
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "link")
+                        Text("复制链接")
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button {
+                    showMoreOptionsPopover = false
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(resolvedItem.pageURL.absoluteString, forType: .string)
+                    showCopyLinkToast = true
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        showCopyLinkToast = false
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "link")
+                        Text("复制链接")
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 重新烘焙（仅 Scene 类型已下载壁纸）
+            if sceneOfflineBakeButtonVisible {
+                Button {
+                    showMoreOptionsPopover = false
+                    reBakeScene()
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text("重新烘焙")
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .disabled(isBakingScene)
+            }
+        }
+        .frame(width: 192)
     }
 
     private func detailInfoBubble(width: CGFloat) -> some View {
@@ -908,7 +1025,19 @@ struct MediaDetailSheet: View {
 
                 infoSection(title: t("wallpaperEngine")) {
                     if let author = resolvedItem.authorName {
-                        compactFact(label: t("author"), value: author)
+                        if resolvedItem.authorSteamID != nil {
+                            Button {
+                                openAuthorSheet()
+                            } label: {
+                                compactFact(label: t("author"), value: author)
+                            }
+                            .buttonStyle(.plain)
+                            .onHover { hovering in
+                                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                            }
+                        } else {
+                            compactFact(label: t("author"), value: author)
+                        }
                     }
                     compactFact(label: "ID", value: resolvedItem.slug.replacingOccurrences(of: "workshop_", with: ""))
                     if let subs = resolvedItem.subscriptionCount {
@@ -2191,7 +2320,17 @@ struct MediaDetailSheet: View {
             durationSeconds: item.durationSeconds,
             downloadOptions: item.downloadOptions,
             sourceName: item.sourceName,
-            isAnimatedImage: item.isAnimatedImage
+            isAnimatedImage: item.isAnimatedImage,
+            subscriptionCount: item.subscriptionCount,
+            favoriteCount: item.favoriteCount,
+            viewCount: item.viewCount,
+            ratingScore: item.ratingScore,
+            authorName: item.authorName,
+            authorSteamID: item.authorSteamID,
+            authorAvatarURL: item.authorAvatarURL,
+            fileSize: item.fileSize,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
         )
     }
 
@@ -2382,6 +2521,116 @@ struct MediaDetailSheet: View {
             }
         }
     }
+
+    // MARK: - 作者壁纸弹窗
+
+    @ViewBuilder
+    private var authorSheetOverlay: some View {
+        if showAuthorSheet,
+           let authorName = resolvedItem.authorName,
+           let steamID = resolvedItem.authorSteamID {
+            AuthorMediaSheet(
+                authorName: authorName,
+                authorSteamID: steamID,
+                authorAvatarURL: resolvedItem.authorAvatarURL,
+                items: authorMediaItems,
+                isLoading: isLoadingAuthorItems,
+                onSelectItem: { selectedItem in
+                    navigateToAuthorMedia(selectedItem)
+                },
+                onDismiss: {
+                    showAuthorSheet = false
+                    authorMediaItems = []
+                    authorItemsPage = 1
+                    hasMoreAuthorItems = true
+                },
+                onLoadMore: {
+                    self.loadMoreAuthorMedia()
+                }
+            )
+            .transition(.identity)
+            .zIndex(100)
+        }
+    }
+
+    /// 打开作者壁纸弹窗，开始加载该作者的 Workshop 壁纸列表
+    private func openAuthorSheet() {
+        guard let steamID = resolvedItem.authorSteamID else { return }
+        showAuthorSheet = true
+        authorMediaItems = []
+        authorItemsPage = 1
+        hasMoreAuthorItems = true
+        isLoadingAuthorItems = true
+
+        Task {
+            do {
+                let results = try await viewModel.fetchMediaByAuthor(
+                    steamID: steamID,
+                    page: 1
+                )
+                await MainActor.run {
+                    // 过滤掉当前正在查看的项
+                    authorMediaItems = results.filter { $0.id != resolvedItem.id }
+                    hasMoreAuthorItems = results.count >= 30
+                    isLoadingAuthorItems = false
+                }
+            } catch {
+                AppLogger.error(.media, "加载作者 Workshop 壁纸失败",
+                    metadata: ["steamID": steamID, "error": error.localizedDescription])
+                await MainActor.run {
+                    isLoadingAuthorItems = false
+                }
+            }
+        }
+    }
+
+    /// 加载更多作者壁纸（分页）
+    private func loadMoreAuthorMedia() {
+        guard let steamID = resolvedItem.authorSteamID,
+              !isLoadingAuthorItems,
+              hasMoreAuthorItems else { return }
+        isLoadingAuthorItems = true
+        let nextPage = authorItemsPage + 1
+
+        Task {
+            do {
+                let results = try await viewModel.fetchMediaByAuthor(
+                    steamID: steamID,
+                    page: nextPage
+                )
+                await MainActor.run {
+                    let newItems = results.filter { $0.id != resolvedItem.id }
+                    authorMediaItems.append(contentsOf: newItems)
+                    authorItemsPage = nextPage
+                    hasMoreAuthorItems = results.count >= 30
+                    isLoadingAuthorItems = false
+                }
+            } catch {
+                AppLogger.error(.media, "加载更多作者壁纸失败",
+                    metadata: ["steamID": steamID, "page": nextPage, "error": error.localizedDescription])
+                await MainActor.run {
+                    isLoadingAuthorItems = false
+                }
+            }
+        }
+    }
+
+    /// 从作者壁纸弹窗导航到壁纸详情（关闭弹窗）
+    private func navigateToAuthorMedia(_ item: MediaItem) {
+        // 关闭作者弹窗
+        showAuthorSheet = false
+        authorMediaItems = []
+        authorItemsPage = 1
+        hasMoreAuthorItems = true
+
+        // 导航到该壁纸
+        if let index = viewModel.items.firstIndex(where: { $0.id == item.id }) {
+            navigateToIndex(index)
+        } else {
+            prepareSlideTransition(direction: .down)
+            reloadMedia(item)
+        }
+    }
 }
 
 // MARK: - 详情页加载动画
@@ -2563,7 +2812,7 @@ struct WallpaperPreviewSheet: View {
             }
 
             // 视频/网页加载进度指示
-            if isWeb ? !isWebLoaded : previewPlayer.totalDuration == 0 {
+            if isWeb ? !isWebLoaded : (isVideo && previewPlayer.totalDuration == 0) {
                 VStack(spacing: 12) {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))

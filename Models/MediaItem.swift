@@ -30,7 +30,7 @@ extension MediaDownloadOption {
         let components = detailText.components(separatedBy: " ")
         return components.first ?? detailText
     }
-    
+
     /// 文件大小文本
     var fileSizeText: String {
         fileSizeLabel
@@ -91,13 +91,17 @@ struct MediaItem: Identifiable, Codable, Hashable {
     let downloadOptions: [MediaDownloadOption]
     let sourceName: String
     let isAnimatedImage: Bool?
-    
+
     // Workshop-specific metadata (optional)
     let subscriptionCount: Int?
     let favoriteCount: Int?
     let viewCount: Int?
     let ratingScore: Double?
     let authorName: String?
+    /// Steam 64位数字 ID（用于构造作者 Workshop 页面 URL）
+    let authorSteamID: String?
+    /// 作者头像 URL
+    let authorAvatarURL: URL?
     let fileSize: Int64?
     let createdAt: Date?
     let updatedAt: Date?
@@ -123,6 +127,8 @@ struct MediaItem: Identifiable, Codable, Hashable {
         viewCount: Int? = nil,
         ratingScore: Double? = nil,
         authorName: String? = nil,
+        authorSteamID: String? = nil,
+        authorAvatarURL: URL? = nil,
         fileSize: Int64? = nil,
         createdAt: Date? = nil,
         updatedAt: Date? = nil
@@ -148,6 +154,8 @@ struct MediaItem: Identifiable, Codable, Hashable {
         self.viewCount = viewCount
         self.ratingScore = ratingScore
         self.authorName = authorName
+        self.authorSteamID = authorSteamID
+        self.authorAvatarURL = authorAvatarURL
         self.fileSize = fileSize
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -205,27 +213,27 @@ extension MediaItem {
     var thumbnailURLValue: URL { thumbnailURL }
     var posterURLValue: URL? { posterURL }
     var previewVideoURLValue: URL? { previewVideoURL }
-    
+
     // 主要标签文本
     var primaryTagText: String {
         tags.first ?? collectionTitle ?? sourceName
     }
-    
+
     // 来源文本
     var sourceText: String {
         sourceName
     }
-    
+
     // 分类名称（用于 moewalls 的 tag 分类）
     var categoryName: String? {
         collectionTitle
     }
-    
+
     // 格式文本（分辨率标签）
     var formatText: String {
         primaryBadgeText
     }
-    
+
     // 媒体类型
     var kind: String {
         // 如果有预览视频，标记为 live_wallpaper
@@ -255,13 +263,13 @@ extension MediaItem {
     var shouldRenderThumbnailAsAnimatedImage: Bool {
         isAnimatedImage ?? isGIF
     }
-    
+
     // 上传日期（用于详情页展示）
     var uploadDate: String? {
         // 可以从 slug 或其他元数据解析，暂时返回 nil
         nil
     }
-    
+
     // 是否有详细数据（用于判断是否加载详情）
     var hasDetailPayload: Bool {
         // 如果有下载选项或预览视频，说明已经有详细数据

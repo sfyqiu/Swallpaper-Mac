@@ -116,6 +116,7 @@ struct HomeContentView: View {
     @Binding var selectedMedia: MediaItem?
     /// 为 false 时不挂载重 UI（非当前 Tab），避免五 Tab 同时跑 ScrollView/轮播
     var isTabActive: Bool = true
+    @ObservedObject private var arcSettings = ArcBackgroundSettings.shared
 
     @State private var currentCarouselIndex = 0
     @State private var currentCarouselDisplayIndex = 0
@@ -244,8 +245,15 @@ struct HomeContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
-            homeBackground
-                .ignoresSafeArea()
+            Group {
+                if arcSettings.compactMode {
+                    arcSettings.compactBackground
+                        .ignoresSafeArea()
+                } else {
+                    homeBackground
+                        .ignoresSafeArea()
+                }
+            }
         )
         .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
             handleScroll(offset: offset)

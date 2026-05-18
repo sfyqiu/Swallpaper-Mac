@@ -37,12 +37,16 @@ final class DownloadPathManager {
 
     /// 根目录: 默认 ~/Library/Application Support/WaifuX/，或用户自定义目录下 WaifuX/
     var rootFolderURL: URL {
+        let url: URL
         if let customRoot = resolveCustomRootURL() {
-            return customRoot.appendingPathComponent("WaifuX", isDirectory: true)
+            url = customRoot.appendingPathComponent("WaifuX", isDirectory: true)
+        } else {
+            url = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+                .first!
+                .appendingPathComponent("WaifuX", isDirectory: true)
         }
-        return fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first!
-            .appendingPathComponent("WaifuX", isDirectory: true)
+        print("[DownloadPathManager] rootFolderURL = \(url.path)")
+        return url
     }
 
     /// 壁纸目录
@@ -64,7 +68,8 @@ final class DownloadPathManager {
 
     // MARK: - 自定义目录解析
 
-    /// 从 bookmark 数据解析用户自定义的根目录 URL，并自动恢复访问权限
+    /// 从 bookmark 数据解析用户自定义的根目录 URL，并自动恢复访问权限。
+    /// 若 bookmark 解析失败，尝试使用保存的路径字符串作为兜底。
     private func resolveCustomRootURL() -> URL? {
         guard let bookmarkData = defaults.data(forKey: Self.customDownloadRootBookmarkKey) else {
             return nil
@@ -79,11 +84,20 @@ final class DownloadPathManager {
             )
             if isStale {
                 // 刷新 bookmark
-                _ = try? createBookmark(for: url)
+                if let newBookmark = try? createBookmark(for: url) {
+                    defaults.set(newBookmark, forKey: Self.customDownloadRootBookmarkKey)
+                }
             }
             return url
         } catch {
             print("[DownloadPathManager] Failed to resolve custom root bookmark: \(error)")
+            // 兜底：尝试使用保存的纯路径字符串
+            if let savedPath = defaults.string(forKey: Self.customDownloadRootPathKey),
+               fileManager.fileExists(atPath: savedPath) {
+                print("[DownloadPathManager] Falling back to saved path: \(savedPath)")
+                return URL(fileURLWithPath: savedPath)
+            }
+            print("[DownloadPathManager] Saved path also unavailable, custom root is lost")
             return nil
         }
     }

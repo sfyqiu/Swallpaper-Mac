@@ -592,6 +592,9 @@ final class MediaExploreViewModel: ObservableObject {
             return
         }
 
+        // 清空旧结果，避免新请求时残留上一轮的图片
+        items = []
+
         defer { isLoading = false }
         errorMessage = nil
 
@@ -633,6 +636,9 @@ final class MediaExploreViewModel: ObservableObject {
             print("[MediaExploreViewModel] search: already loading, skipping")
             return
         }
+
+        // 清空旧搜索结果，避免新搜索时残留上一轮的图片
+        items = []
 
         defer { isLoading = false }
         errorMessage = nil
@@ -1356,6 +1362,9 @@ final class MediaExploreViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        // 清空旧结果，避免新请求时残留上一轮的图片
+        items = []
+
         defer { isLoading = false }
 
         // 重置分页状态
@@ -1450,6 +1459,25 @@ final class MediaExploreViewModel: ObservableObject {
             workshopCurrentPage -= 1  // 恢复页码
             print("[MediaExploreViewModel] loadMoreWorkshop failed: \(error)")
         }
+    }
+
+    // MARK: - 按作者获取 Workshop 物品
+
+    /// 获取指定作者的所有 Workshop 壁纸
+    /// - Parameters:
+    ///   - steamID: Steam 64位数字 ID
+    ///   - page: 页码
+    /// - Returns: 壁纸列表（已转为 MediaItem）
+    func fetchMediaByAuthor(steamID: String, page: Int = 1) async throws -> [MediaItem] {
+        let wallpapers = try await workshopService.fetchByAuthor(steamID: steamID, page: page)
+        let mediaItems = workshopService.convertToMediaItems(wallpapers)
+
+        // 缓存到本地库
+        for item in mediaItems {
+            mediaLibrary.upsert(item)
+        }
+
+        return mediaItems
     }
 
     // MARK: - Workshop 下载
