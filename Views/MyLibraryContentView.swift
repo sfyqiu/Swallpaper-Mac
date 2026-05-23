@@ -7,7 +7,6 @@ struct MyLibraryContentView: View {
     @StateObject private var viewModel = WallpaperViewModel()
     @StateObject private var mediaViewModel = MediaExploreViewModel()
     @StateObject private var downloadTaskViewModel = DownloadTaskViewModel()
-    @ObservedObject private var animeFavoriteStore = AnimeFavoriteStore.shared
     @ObservedObject private var folderStore = LibraryFolderStore.shared
     @ObservedObject private var arcSettings = ArcBackgroundSettings.shared
 
@@ -15,10 +14,8 @@ struct MyLibraryContentView: View {
     @State private var selectedContentType: ContentType = .wallpaper
     @Binding var selectedWallpaper: Wallpaper?
     @Binding var selectedMedia: MediaItem?
-    @Binding var selectedAnime: AnimeSearchResult?
     @Binding var wallpaperContext: [Wallpaper]
     @Binding var mediaContext: [MediaItem]
-    @State private var animeFavorites: [AnimeSearchResult] = []
 
     // 子标签：收藏 / 已下载
     @State private var selectedSubTab: SubTab = .downloads
@@ -41,10 +38,8 @@ struct MyLibraryContentView: View {
     @State private var mediaFolderDisplay: [String: FolderDisplayInfo] = [:]
     @State private var lastWallpaperPrefetchBucket: Int?
     @State private var lastMediaPrefetchBucket: Int?
-    @State private var lastAnimePrefetchBucket: Int?
     private let wallpaperPrefetchNamespace = "library.wallpapers"
     private let mediaPrefetchNamespace = "library.media"
-    private let animePrefetchNamespace = "library.anime"
 
     // 文件夹导航
     @State private var currentWallpaperFolderID: String? = nil
@@ -93,7 +88,6 @@ struct MyLibraryContentView: View {
             return .wallpaperFallback
         case .video:
             return .mediaFallback
-        case .anime:
             return ExploreAtmosphereTint(
                 primary: Color(hex: "FF5A7D"),
                 secondary: Color(hex: "8A5CFF"),
@@ -131,13 +125,11 @@ struct MyLibraryContentView: View {
             GeometryReader { geometry in
                 let contentWidth = max(0, geometry.size.width - 56)
                 let gridConfig = LibraryGridConfig(contentWidth: contentWidth)
-                let animeGridConfig = AnimeGridConfig(contentWidth: contentWidth)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 32) {
                         mediaHero
                         ContentTypePicker(selected: $selectedContentType)
-                        contentSections(config: gridConfig, animeConfig: animeGridConfig)
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 28)
@@ -152,16 +144,11 @@ struct MyLibraryContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
             await viewModel.initialLoad()
-            await loadAnimeFavorites()
             Task {
                 await LocalWallpaperScanner.shared.forceRescan()
             }
             updateWallpaperItems()
             updateMediaItems()
-        }
-        .onReceive(animeFavoriteStore.$favorites) { _ in
-            Task {
-                await loadAnimeFavorites()
             }
         }
         .onChange(of: viewModel.libraryContentRevision) { _, _ in
@@ -233,10 +220,8 @@ struct MyLibraryContentView: View {
     }
 
     // MARK: - 加载动漫收藏
-    private func loadAnimeFavorites() async {
         let favorites = animeFavoriteStore.allFavorites
         let progressStore = AnimeProgressStore.shared
-        lastAnimePrefetchBucket = nil
         animeFavorites = favorites.map { favorite in
             // 尝试从进度存储中获取观看信息
             let summary = progressStore.animeSummaries[favorite.id]
@@ -272,10 +257,8 @@ struct MyLibraryContentView: View {
 
         selectedWallpaper = nil
         selectedMedia = nil
-        selectedAnime = nil
         wallpaperContext.removeAll()
         mediaContext.removeAll()
-        animeFavorites.removeAll()
         wallpaperItems.removeAll()
         mediaItems.removeAll()
         wallpaperFolderDisplay.removeAll()
@@ -290,14 +273,12 @@ struct MyLibraryContentView: View {
         newFolderName = ""
         lastWallpaperPrefetchBucket = nil
         lastMediaPrefetchBucket = nil
-        lastAnimePrefetchBucket = nil
         stopLibraryPrefetchers()
     }
 
     private func stopLibraryPrefetchers() {
         ForegroundPrefetchManager.shared.stop(namespace: wallpaperPrefetchNamespace)
         ForegroundPrefetchManager.shared.stop(namespace: mediaPrefetchNamespace)
-        ForegroundPrefetchManager.shared.stop(namespace: animePrefetchNamespace)
     }
 
     // MARK: - Hero
@@ -332,21 +313,17 @@ struct MyLibraryContentView: View {
             } else {
                 return (mediaViewModel.allLocalMedia.count, "arrow.down.circle.fill", LiquidGlassColors.accentCyan, "item.downloads")
             }
-        case .anime:
             return (animeFavorites.count, "heart.fill", LiquidGlassColors.primaryPink, "item.favorites")
         }
     }
 
     // MARK: - Content Sections
     @ViewBuilder
-    private func contentSections(config: LibraryGridConfig, animeConfig: AnimeGridConfig) -> some View {
         switch selectedContentType {
         case .wallpaper:
             wallpaperSection(config: config)
         case .video:
             mediaSection(config: config)
-        case .anime:
-            animeSection(config: animeConfig)
         }
     }
 
@@ -719,26 +696,6 @@ struct MyLibraryContentView: View {
         )
     }
 
-    private func preloadNearbyAnime(around anime: AnimeSearchResult, config: AnimeGridConfig) {
-        guard let index = currentAnimeItems.firstIndex(where: { $0.id == anime.id }) else { return }
-        let bucket = prefetchBucket(for: index)
-        guard lastAnimePrefetchBucket != bucket else { return }
-        lastAnimePrefetchBucket = bucket
-
-        let targetSize = CGSize(width: 512, height: 512)
-        let range = prefetchRange(around: index, totalCount: currentAnimeItems.count)
-        let urls = range
-            .filter { $0 != index }
-            .compactMap { URL(string: currentAnimeItems[$0].coverURL ?? "") }
-
-        ForegroundPrefetchManager.shared.stop(namespace: animePrefetchNamespace)
-        ForegroundPrefetchManager.shared.start(
-            urls: urls,
-            options: [.processor(DownsamplingImageProcessor(size: targetSize))],
-            namespace: animePrefetchNamespace
-        )
-    }
-
     private func prefetchBucket(for index: Int) -> Int {
         index / 6
     }
@@ -854,7 +811,6 @@ struct MyLibraryContentView: View {
     }
 
     // MARK: - Anime Section
-    private func animeSection(config: AnimeGridConfig) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader(
                 title: t("library.anime"),
@@ -890,11 +846,6 @@ struct MyLibraryContentView: View {
                 }
             }
         }
-    }
-
-    private var currentAnimeItems: [AnimeSearchResult] {
-        // 动漫目前只有收藏
-        animeFavorites
     }
 
     // MARK: - Section Header
@@ -1267,14 +1218,6 @@ struct MyLibraryContentView: View {
         }
     }
 
-    private func handleAnimeTap(_ anime: AnimeSearchResult) {
-        if isEditing {
-            toggleSelection(anime.id)
-        } else {
-            selectedAnime = anime
-        }
-    }
-
     private func toggleSelection(_ id: String) {
         if selectedItems.contains(id) {
             selectedItems.remove(id)
@@ -1298,7 +1241,6 @@ struct MyLibraryContentView: View {
             let folderIDs = currentMediaFolders.map { "folder_\($0.id)" }
             let itemIDs = currentMediaItems.map(\.id)
             return folderIDs + itemIDs
-        case .anime:
             return currentAnimeItems.map(\.id)
         }
     }
@@ -1316,7 +1258,6 @@ struct MyLibraryContentView: View {
                 folderStore.deleteFolder(id: realID, contentType: .wallpaper)
             case .video:
                 folderStore.deleteFolder(id: realID, contentType: .media)
-            case .anime:
                 break
             }
         }
@@ -1353,12 +1294,9 @@ struct MyLibraryContentView: View {
                 }
             }
 
-        case .anime:
             for id in itemIDs {
-                AnimeFavoriteStore.shared.removeFavorite(animeId: id)
             }
             Task {
-                await loadAnimeFavorites()
             }
         }
         selectedItems.removeAll()
@@ -1800,8 +1738,6 @@ struct MyLibraryContentView: View {
             isAnimatedImage: nil
         )
     }
-
-
 
     private func makeImportedWorkshopItem(
         workshopID: String,

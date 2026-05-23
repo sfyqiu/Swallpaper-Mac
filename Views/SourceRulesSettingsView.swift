@@ -105,7 +105,6 @@ struct SourceRulesSettingsView: View {
             GitHubImportSheet(viewModel: viewModel)
         }
         .sheet(isPresented: $showAnimeRulesMarket) {
-            AnimeRulesMarketView()
                 .frame(minWidth: 700, minHeight: 500)
         }
         .task {

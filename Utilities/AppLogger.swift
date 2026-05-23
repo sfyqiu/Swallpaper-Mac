@@ -44,7 +44,6 @@ enum AppLogModule: String, CaseIterable {
     case grid        = "Grid"        // RecyclableGridView 相关
     case wallpaper   = "Wallpaper"
     case media       = "Media"
-    case anime       = "Anime"
     case video       = "Video"
     case network     = "Network"
     case storage     = "Storage"

@@ -610,7 +610,6 @@ class ExploreGridItem: NSCollectionViewItem {
 enum ExploreGridSkeletonStyle {
     case wallpaper
     case media
-    case anime
 }
 
 final class ExploreGridSkeletonCell: ExploreGridItem {

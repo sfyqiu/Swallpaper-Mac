@@ -310,7 +310,6 @@ struct RuleMarketItemView: View {
 enum RuleCategory: String, CaseIterable {
     case all
     case wallpaper
-    case anime
     case video
 
     var displayName: String {
@@ -359,7 +358,6 @@ class RuleMarketViewModel: ObservableObject {
 
     private let ruleRepository = RuleRepository.shared
     private let ruleLoader = RuleLoader.shared
-    private let animeRuleStore = AnimeRuleStore.shared
 
     var filteredRules: [RemoteRuleInfo] {
         var result = rules
