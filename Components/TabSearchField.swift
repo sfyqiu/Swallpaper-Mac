@@ -10,10 +10,10 @@ struct TabSearchField: View {
 
     enum SearchTab: String, CaseIterable {
         case all
+        case anime
         case people
         case nature
         case technology
-        case anime
 
         var icon: String {
             switch self {

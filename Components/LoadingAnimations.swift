@@ -437,6 +437,7 @@ struct PaginationSkeletonRow: View {
     enum SkeletonRowStyle {
         case wallpaper   // 壁纸卡片：顶部图片 + 底部文字栏
         case media       // 媒体卡片：同壁纸但可能有播放按钮
+        case anime       // 动漫卡片：竖版比例 + 标题+集数
     }
 
     init(
@@ -468,7 +469,7 @@ struct PaginationSkeletonRow: View {
     @ViewBuilder
     private var skeletonCard: some View {
         switch style {
-        case .wallpaper, .media, .anime:
+        case .wallpaper, .media:
             WallpaperPaginationSkeleton(cornerRadius: cornerRadius)
         case .anime:
             AnimePaginationSkeleton()

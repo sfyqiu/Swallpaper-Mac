@@ -323,6 +323,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
                     // 第4帧：动漫数据
                     DispatchQueue.main.async {
+                        AnimeFavoriteStore.shared.restoreSavedData()
+                        AnimeProgressStore.shared.restoreSavedData()
 
                         // 第4.5帧：恢复未完成迁移 + 修复孤儿路径
                         DispatchQueue.main.async {
@@ -500,6 +502,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         guard let window else {
             DisplaySelectorManager.shared.cancelForMemoryRelease()
+            AnimeWindowManager.shared.closeAllWindowsForMemoryRelease()
+            AnimeVideoExtractor.shared.cancel()
             ForegroundPrefetchManager.shared.stopAll()
             KingfisherManager.shared.downloader.cancelAll()
             ImageCache.default.clearMemoryCache()
@@ -512,6 +516,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 await MediaService.shared.clearCache()
                 await ContentService.shared.clearCache()
                 await NetworkService.shared.clearCache()
+                await KazumiRuleLoader.shared.clearCache()
+                await AnimeRuleStore.shared.clearInMemoryCache()
                 await RuleLoader.shared.clearInMemoryCache()
                 await RuleRepository.shared.clearCache()
             }
@@ -533,6 +539,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func releaseForegroundResourcesForHiddenWindow(_ window: NSWindow) {
         NotificationCenter.default.post(name: .appShouldReleaseForegroundMemory, object: nil)
         DisplaySelectorManager.shared.cancelForMemoryRelease()
+        AnimeWindowManager.shared.closeAllWindowsForMemoryRelease()
+        AnimeVideoExtractor.shared.cancel()
 
         // 释放视图树是回收系统图形缓存（IOSurface、CALayer backing store）的关键。
         // 只清前台浏览/预览缓存；动态壁纸渲染、调度器、下载任务和状态栏继续运行。
@@ -556,6 +564,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             await MediaService.shared.clearCache()
             await ContentService.shared.clearCache()
             await NetworkService.shared.clearCache()
+            await KazumiRuleLoader.shared.clearCache()
+            await AnimeRuleStore.shared.clearInMemoryCache()
             await RuleLoader.shared.clearInMemoryCache()
             await RuleRepository.shared.clearCache()
         }

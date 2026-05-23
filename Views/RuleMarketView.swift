@@ -310,13 +310,13 @@ struct RuleMarketItemView: View {
 enum RuleCategory: String, CaseIterable {
     case all
     case wallpaper
+    case anime
     case video
 
     var displayName: String {
         switch self {
         case .all: return "全部"
         case .wallpaper: return "壁纸"
-        case .anime: return "动漫"
         case .anime: return "动漫"
         case .video: return "视频"
         }
@@ -326,7 +326,6 @@ enum RuleCategory: String, CaseIterable {
         switch self {
         case .all: return "square.grid.2x2"
         case .wallpaper: return "photo"
-        case .anime: return "play.tv"
         case .anime: return "play.tv"
         case .video: return "film"
         }
@@ -360,6 +359,7 @@ class RuleMarketViewModel: ObservableObject {
 
     private let ruleRepository = RuleRepository.shared
     private let ruleLoader = RuleLoader.shared
+    private let animeRuleStore = AnimeRuleStore.shared
 
     var filteredRules: [RemoteRuleInfo] {
         var result = rules
