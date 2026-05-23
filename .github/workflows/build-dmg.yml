@@ -1,10 +1,13 @@
-name: Build DMG (Manual)
+name: Build DMG
 
 on:
   workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -94,9 +97,35 @@ jobs:
               -ov -format UDZO -imagekey zlib-level=9 build/Swallpaper.dmg
           fi
 
-      - name: Upload DMG as Artifact
-        uses: actions/upload-artifact@v5
+      - name: Read Version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Push Tag
+        run: |
+          git tag -f "${{ steps.version.outputs.tag }}"
+          git push -f origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: Swallpaper
-          path: build/Swallpaper.dmg
-          retention-days: 30
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Swallpaper ${{ steps.version.outputs.version }}
+          body: |
+            ## Swallpaper — 基于 WaifuX 的个人定制版
+
+            - 解除成人内容限制
+            - Steam 创意工坊完整访问
+            - 更新检查指向本仓库
+
+            ### 安装说明
+            下载 `Swallpaper.dmg`，双击挂载后把 `Swallpaper.app` 拖入 Applications。
+            首次打开需**右键 → 打开**（未签名公证）。
+          files: build/Swallpaper.dmg
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
