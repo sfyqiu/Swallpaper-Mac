@@ -1,5 +1,5 @@
 import Foundation
-import Kanna
+@preconcurrency import Kanna
 
 // MARK: - XPath HTML 解析器 (用于 Kazumi 规则)
 

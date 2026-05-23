@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 import CFNetwork
-import SwiftSoup
+@preconcurrency import SwiftSoup
 
 // MARK: - SteamCMD 并发下载限制器
 /// SteamCMD 虽无明确的 CLI 并发限制，但 Steam 后端会对同一账号的

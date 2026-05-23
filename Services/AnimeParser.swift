@@ -1,5 +1,5 @@
 import Foundation
-import SwiftSoup
+@preconcurrency import SwiftSoup
 
 // MARK: - 动漫解析服务
 

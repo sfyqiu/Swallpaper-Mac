@@ -1,5 +1,5 @@
 import Foundation
-import SwiftSoup
+@preconcurrency import SwiftSoup
 
 // MARK: - HTML 解析服务
 

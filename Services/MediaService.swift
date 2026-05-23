@@ -1,5 +1,5 @@
 import Foundation
-import SwiftSoup
+@preconcurrency import SwiftSoup
 
 actor MediaService {
     static let shared = MediaService()
