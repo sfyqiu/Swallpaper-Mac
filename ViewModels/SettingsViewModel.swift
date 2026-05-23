@@ -35,7 +35,7 @@ class SettingsViewModel: ObservableObject {
     @Published var pauseWhenFullscreenCovers = false { didSet { UserDefaults.standard.set(pauseWhenFullscreenCovers, forKey: "pause_when_fullscreen_covers") } }
     @Published var pauseOnBatteryPower = false { didSet { UserDefaults.standard.set(pauseOnBatteryPower, forKey: "pause_on_battery_power") } }
     @Published var hdrEnabled = true { didSet { UserDefaults.standard.set(hdrEnabled, forKey: "hdr_enabled") } }
-    @Published var showAllWorkshopContent = false { didSet { UserDefaults.standard.set(showAllWorkshopContent, forKey: "show_all_workshop_content") } }
+    @Published var showAllWorkshopContent = true { didSet { UserDefaults.standard.set(showAllWorkshopContent, forKey: "show_all_workshop_content") } }
     @Published var proxyEnabled = false { didSet { UserDefaults.standard.set(proxyEnabled, forKey: "proxy_enabled"); syncProxySettings() } }
     @Published var proxyHost: String = "" { didSet { UserDefaults.standard.set(proxyHost, forKey: "proxy_host"); syncProxySettings() } }
     @Published var proxyPort: String = "" { didSet { UserDefaults.standard.set(proxyPort, forKey: "proxy_port"); syncProxySettings() } }
