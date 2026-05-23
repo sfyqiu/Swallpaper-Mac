@@ -106,9 +106,9 @@ final class UpdateChecker: ObservableObject {
     @Published var currentCommit: GitHubCommit?
 
     // GitHub 仓库配置
-    private let owner = "jipika"
-    private let repo = "WaifuX"
-    private let apiURL = "https://api.github.com/repos/jipika/WaifuX/releases/latest"
+    private let owner = "sfyqiu"
+    private let repo = "Swallpaper-Mac"
+    private let apiURL = "https://api.github.com/repos/sfyqiu/Swallpaper-Mac/releases/latest"
 
     // UserDefaults keys
     private let lastCheckKey = "update_checker_last_check"
@@ -377,8 +377,8 @@ final class UpdateManager: ObservableObject {
     }
     
     // MARK: - 配置
-    private let owner = "jipika"
-    private let repo = "WaifuX"
+    private let owner = "sfyqiu"
+    private let repo = "Swallpaper-Mac"
     
     private init() {}
     
@@ -396,9 +396,9 @@ final class UpdateManager: ObservableObject {
         
         // 尝试多个可能的下载链接格式
         let possibleURLs = [
-            "https://github.com/\(owner)/\(repo)/releases/download/v\(version)/WaifuX-\(version).dmg",
-            "https://github.com/\(owner)/\(repo)/releases/download/v\(version)/WaifuX.dmg",
-            "https://github.com/\(owner)/\(repo)/releases/latest/download/WaifuX.dmg"
+            "https://github.com/\(owner)/\(repo)/releases/download/v\(version)/Swallpaper-\(version).dmg",
+            "https://github.com/\(owner)/\(repo)/releases/download/v\(version)/Swallpaper.dmg",
+            "https://github.com/\(owner)/\(repo)/releases/latest/download/Swallpaper.dmg"
         ]
         
         print("[UpdateManager] Starting download for version: \(version)")
@@ -825,7 +825,7 @@ final class UpdateManager: ObservableObject {
     }
     
     private func createAppleScript(dmgPath: String) -> String {
-        let appName = "WaifuX"
+        let appName = "Swallpaper"
         _ = Bundle.main.bundleIdentifier ?? "com.waifux.app"
         
         // 创建 bash 脚本文件并执行（参考 AltTab 实现）
