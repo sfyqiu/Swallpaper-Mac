@@ -3,13 +3,14 @@ import AppKit
 
 // MARK: - 主标签类型
 public enum MainTab: String, CaseIterable {
-    case home, wallpaperExplore, mediaExplore, myMedia
+    case home, wallpaperExplore, animeExplore, mediaExplore, myMedia
 
     var title: String {
         switch self {
         case .home: return t("nav.home")
         case .wallpaperExplore: return t("nav.wallpaper")
         case .mediaExplore: return t("nav.media")
+        case .animeExplore: return t("nav.anime")
         case .myMedia: return t("nav.myMedia")
         }
     }
@@ -19,6 +20,7 @@ public enum MainTab: String, CaseIterable {
         case .home: return "house"
         case .wallpaperExplore: return "photo"
         case .mediaExplore: return "film"
+        case .animeExplore: return "play.tv"
         case .myMedia: return "heart"
         }
     }
