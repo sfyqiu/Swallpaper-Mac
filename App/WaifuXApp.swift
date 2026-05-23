@@ -512,7 +512,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 await MediaService.shared.clearCache()
                 await ContentService.shared.clearCache()
                 await NetworkService.shared.clearCache()
-                await KazumiRuleLoader.shared.clearCache()
                 await RuleLoader.shared.clearInMemoryCache()
                 await RuleRepository.shared.clearCache()
             }
@@ -557,7 +556,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             await MediaService.shared.clearCache()
             await ContentService.shared.clearCache()
             await NetworkService.shared.clearCache()
-            await KazumiRuleLoader.shared.clearCache()
             await RuleLoader.shared.clearInMemoryCache()
             await RuleRepository.shared.clearCache()
         }

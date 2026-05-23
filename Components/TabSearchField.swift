@@ -13,6 +13,7 @@ struct TabSearchField: View {
         case people
         case nature
         case technology
+        case anime
 
         var icon: String {
             switch self {
