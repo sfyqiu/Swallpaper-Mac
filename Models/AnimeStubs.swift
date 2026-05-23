@@ -89,7 +89,7 @@ actor AnimeRuleStore {
     }
     func installRule(from urlStr: String) async throws -> AnimeRule {
         _ = urlStr
-        AnimeRule(id: "", name: "", baseURL: "", searchURL: "")
+        return AnimeRule(id: "", name: "", baseURL: "", searchURL: "")
     }
 }
 
