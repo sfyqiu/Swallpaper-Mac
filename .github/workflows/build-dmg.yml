@@ -54,13 +54,13 @@ jobs:
 
       - name: Build Archive
         run: |
-          xcodebuild -scheme WaifuX -configuration Release clean archive \
+          xcodebuild -scheme Swallpaper -configuration Release clean archive \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             DEBUG_INFORMATION_FORMAT=dwarf \
             SWIFT_STRICT_CONCURRENCY=minimal \
-            -archivePath build/WaifuX.xcarchive
+            -archivePath build/Swallpaper.xcarchive
 
       - name: Export App
         run: |
@@ -75,7 +75,7 @@ jobs:
           </plist>
           EOF
           xcodebuild -exportArchive \
-            -archivePath build/WaifuX.xcarchive \
+            -archivePath build/Swallpaper.xcarchive \
             -exportPath build \
             -exportOptionsPlist build/exportOptions.plist \
             CODE_SIGN_IDENTITY="-" \
@@ -84,19 +84,19 @@ jobs:
       - name: Create DMG
         run: |
           if command -v create-dmg &> /dev/null; then
-            create-dmg --volname "WaifuX" --window-size 540 400 \
-              --app-drop-link 400 185 --hide-extension "WaifuX.app" \
-              --no-internet-enable build/WaifuX.dmg build/WaifuX.app || \
-            hdiutil create -volname "WaifuX" -srcfolder build/WaifuX.app \
-              -ov -format UDZO -imagekey zlib-level=9 build/WaifuX.dmg
+            create-dmg --volname "Swallpaper" --window-size 540 400 \
+              --app-drop-link 400 185 --hide-extension "Swallpaper.app" \
+              --no-internet-enable build/Swallpaper.dmg build/Swallpaper.app || \
+            hdiutil create -volname "Swallpaper" -srcfolder build/Swallpaper.app \
+              -ov -format UDZO -imagekey zlib-level=9 build/Swallpaper.dmg
           else
-            hdiutil create -volname "WaifuX" -srcfolder build/WaifuX.app \
-              -ov -format UDZO -imagekey zlib-level=9 build/WaifuX.dmg
+            hdiutil create -volname "Swallpaper" -srcfolder build/Swallpaper.app \
+              -ov -format UDZO -imagekey zlib-level=9 build/Swallpaper.dmg
           fi
 
       - name: Upload DMG as Artifact
         uses: actions/upload-artifact@v5
         with:
-          name: WaifuX
-          path: build/WaifuX.dmg
+          name: Swallpaper
+          path: build/Swallpaper.dmg
           retention-days: 30
