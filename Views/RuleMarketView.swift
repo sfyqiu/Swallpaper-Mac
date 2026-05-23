@@ -317,6 +317,7 @@ enum RuleCategory: String, CaseIterable {
         case .all: return "全部"
         case .wallpaper: return "壁纸"
         case .anime: return "动漫"
+        case .anime: return "动漫"
         case .video: return "视频"
         }
     }
@@ -325,6 +326,7 @@ enum RuleCategory: String, CaseIterable {
         switch self {
         case .all: return "square.grid.2x2"
         case .wallpaper: return "photo"
+        case .anime: return "play.tv"
         case .anime: return "play.tv"
         case .video: return "film"
         }

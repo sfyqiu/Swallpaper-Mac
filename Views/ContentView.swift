@@ -26,6 +26,7 @@ private final class MainContentNavigationState: ObservableObject {
     @Published var selectedMedia: MediaItem?
     @Published var librarySelectedWallpaper: Wallpaper?
     @Published var librarySelectedMedia: MediaItem?
+    @Published var librarySelectedAnime: AnimeSearchResult? = nil
     @Published var libraryWallpaperContext: [Wallpaper] = []
     @Published var libraryMediaContext: [MediaItem] = []
 
@@ -41,6 +42,7 @@ private final class MainContentNavigationState: ObservableObject {
         selectedMedia = nil
         librarySelectedWallpaper = nil
         librarySelectedMedia = nil
+        librarySelectedAnime = nil
         libraryWallpaperContext.removeAll()
         libraryMediaContext.removeAll()
         selectedTab = .home
@@ -191,7 +193,8 @@ private struct MyLibraryTabPage: View {
             selectedWallpaper: navigationState.binding(for: \.librarySelectedWallpaper),
             selectedMedia: navigationState.binding(for: \.librarySelectedMedia),
             wallpaperContext: navigationState.binding(for: \.libraryWallpaperContext),
-            mediaContext: navigationState.binding(for: \.libraryMediaContext)
+            mediaContext: navigationState.binding(for: \.libraryMediaContext),
+            selectedAnime: navigationState.binding(for: \.librarySelectedAnime)
         )
         .environment(\.coverGIFPlaybackHostActive, navigationState.selectedTab == .myMedia)
     }
@@ -425,6 +428,7 @@ struct ContentView: View {
         navigationState.selectedMedia = nil
         navigationState.librarySelectedWallpaper = nil
         navigationState.librarySelectedMedia = nil
+        navigationState.librarySelectedAnime = nil
     }
 
     private func zoomWindow() {

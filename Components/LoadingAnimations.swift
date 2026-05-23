@@ -468,7 +468,7 @@ struct PaginationSkeletonRow: View {
     @ViewBuilder
     private var skeletonCard: some View {
         switch style {
-        case .wallpaper, .media:
+        case .wallpaper, .media, .anime:
             WallpaperPaginationSkeleton(cornerRadius: cornerRadius)
         case .anime:
             AnimePaginationSkeleton()

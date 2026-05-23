@@ -11,6 +11,7 @@ struct AnimeSearchResult: Identifiable, Codable, Hashable {
     let description: String?
     let tags: [AnimeTag]
     let episodes: [AnimeEpisodeStub]
+    var latestEpisode: String? { nil }
 
     init(id: String, title: String, coverURL: URL? = nil, provider: String = "", detailURL: String = "", description: String? = nil, tags: [AnimeTag] = [], episodes: [AnimeEpisodeStub] = []) {
         self.id = id; self.title = title; self.coverURL = coverURL; self.provider = provider
@@ -19,14 +20,11 @@ struct AnimeSearchResult: Identifiable, Codable, Hashable {
 }
 
 struct AnimeTag: Codable, Hashable {
-    let name: String
-    let count: Int?
+    let name: String; let count: Int?
 }
 
 struct AnimeEpisodeStub: Identifiable, Codable, Hashable {
-    let id: String
-    let title: String
-    let url: String
+    let id: String; let title: String; let url: String
 }
 
 @MainActor
@@ -46,12 +44,15 @@ final class AnimeProgressStore: ObservableObject {
 }
 
 struct AnimeWatchSummary {
-    let watchedCount: Int
-    let totalCount: Int
-    let lastWatchedEpisode: String?
+    let watchedCount: Int = 0
+    let totalCount: Int = 0
+    let lastWatchedEpisode: String? = nil
+    var lastEpisodeNumber: Int? { nil }
+    var watchedEpisodes: Int { 0 }
+    var continueWatchingText: String? { nil }
+    var totalEpisodes: Int { 0 }
+    var overallProgress: Double { 0 }
 }
-
-// MARK: - 其他缺失类型 stub
 
 enum AnimeParserError: LocalizedError {
     case parseError(String)
@@ -68,18 +69,24 @@ final class AnimeRuleStore: ObservableObject {
 }
 
 struct AnimeRuleStub: Identifiable {
-    let id: String
-    let name: String
+    let id: String; let name: String
 }
 
-@MainActor
-final class AnimeWindowManager {
+@MainActor final class AnimeWindowManager {
     static let shared = AnimeWindowManager()
     func closeAllWindowsForMemoryRelease() {}
 }
 
-@MainActor
-final class AnimeVideoExtractor {
+@MainActor final class AnimeVideoExtractor {
     static let shared = AnimeVideoExtractor()
     func cancel() {}
 }
+
+// 以下类型其他文件引用但无实际功能
+struct AnimeDetail: Codable {}
+enum AnimeSearchXPath {}
+enum AnimeDetailXPath {}
+enum AnimeListXPath {}
+struct AnimeXPathRules: Codable {}
+struct AntiCrawlerConfig: Codable {}
+enum CaptchaType: Codable { case imageCaptcha, none }
