@@ -3,7 +3,7 @@ import AppKit
 
 // MARK: - 主标签类型
 public enum MainTab: String, CaseIterable {
-    case home, wallpaperExplore, animeExplore, mediaExplore, myMedia
+    case home, wallpaperExplore, mediaExplore, myMedia
 
     var title: String {
         switch self {

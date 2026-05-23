@@ -260,7 +260,7 @@ struct MyLibraryContentView: View {
                 rank: nil,
                 airDate: nil,
                 airWeekday: nil,
-                tags: favorite.tags.map { AnimeTag(name: $0, count: nil) },
+                tags: favorite.tags,
                 originalName: nil
             )
         }
