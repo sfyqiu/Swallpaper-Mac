@@ -41,8 +41,6 @@ private final class MainContentNavigationState: ObservableObject {
     func resetForMemoryRelease() {
         selectedWallpaper = nil
         selectedMedia = nil
-        selectedAnime = nil
-        librarySelectedAnime = nil
         librarySelectedWallpaper = nil
         librarySelectedMedia = nil
         libraryWallpaperContext.removeAll()
@@ -56,9 +54,8 @@ private extension MainTab {
         switch self {
         case .home: return 0
         case .wallpaperExplore: return 1
-        case .animeExplore: return 2
-        case .mediaExplore: return 3
-        case .myMedia: return 4
+        case .mediaExplore: return 2
+        case .myMedia: return 3
         }
     }
 }
@@ -67,15 +64,12 @@ private struct MainTabContainerView: NSViewControllerRepresentable {
     @ObservedObject var navigationState: MainContentNavigationState
     @ObservedObject var wallpaperViewModel: WallpaperViewModel
     @ObservedObject var mediaViewModel: MediaExploreViewModel
-    @ObservedObject var animeViewModel: AnimeViewModel
-
     func makeNSViewController(context: Context) -> MainTabViewController {
         let controller = MainTabViewController()
         controller.configure(
             navigationState: navigationState,
             wallpaperViewModel: wallpaperViewModel,
             mediaViewModel: mediaViewModel,
-            animeViewModel: animeViewModel
         )
         return controller
     }
@@ -88,7 +82,6 @@ private struct MainTabContainerView: NSViewControllerRepresentable {
 private enum MainDetailRoute: Hashable {
     case wallpaper(Wallpaper, context: [Wallpaper]?)
     case media(MediaItem, context: [MediaItem]?)
-    case anime(AnimeSearchResult)
 }
 
 @MainActor
@@ -104,8 +97,7 @@ private final class MainTabViewController: NSTabViewController {
     func configure(
         navigationState: MainContentNavigationState,
         wallpaperViewModel: WallpaperViewModel,
-        mediaViewModel: MediaExploreViewModel,
-        animeViewModel: AnimeViewModel
+        mediaViewModel: MediaExploreViewModel
     ) {
         guard !isConfigured else {
             select(tab: navigationState.selectedTab)
@@ -120,10 +112,6 @@ private final class MainTabViewController: NSTabViewController {
         addPage(title: MainTab.wallpaperExplore.title, view: WallpaperExploreTabPage(
             navigationState: navigationState,
             wallpaperViewModel: wallpaperViewModel
-        ))
-        addPage(title: MainTab.animeExplore.title, view: AnimeExploreTabPage(
-            navigationState: navigationState,
-            animeViewModel: animeViewModel
         ))
         addPage(title: MainTab.mediaExplore.title, view: MediaExploreTabPage(
             navigationState: navigationState,
@@ -182,19 +170,6 @@ private struct WallpaperExploreTabPage: View {
     }
 }
 
-private struct AnimeExploreTabPage: View {
-    @ObservedObject var navigationState: MainContentNavigationState
-    @ObservedObject var animeViewModel: AnimeViewModel
-
-    var body: some View {
-        AnimeExploreView(
-            viewModel: animeViewModel,
-            selectedAnime: navigationState.binding(for: \.selectedAnime),
-            isVisible: navigationState.selectedTab == .animeExplore
-        )
-        .environment(\.coverGIFPlaybackHostActive, navigationState.selectedTab == .animeExplore)
-    }
-}
 
 private struct MediaExploreTabPage: View {
     @ObservedObject var navigationState: MainContentNavigationState
@@ -228,7 +203,6 @@ private struct MyLibraryTabPage: View {
 struct ContentView: View {
     @StateObject private var viewModel = WallpaperViewModel()
     @StateObject private var mediaViewModel = MediaExploreViewModel()
-    @StateObject private var animeViewModel = AnimeViewModel()
     @StateObject private var navigationState = MainContentNavigationState()
     @ObservedObject private var localization = LocalizationService.shared
     @ObservedObject private var sourceManager = WallpaperSourceManager.shared
@@ -259,10 +233,6 @@ struct ContentView: View {
             guard let item else { return }
             openDetail(.media(item, context: nil))
         }
-        .onChange(of: navigationState.selectedAnime) { _, anime in
-            guard let anime else { return }
-            openDetail(.anime(anime))
-        }
         .onChange(of: navigationState.librarySelectedWallpaper) { _, wallpaper in
             guard let wallpaper else { return }
             let context = navigationState.libraryWallpaperContext.isEmpty ? nil : navigationState.libraryWallpaperContext
@@ -272,10 +242,6 @@ struct ContentView: View {
             guard let item else { return }
             let context = navigationState.libraryMediaContext.isEmpty ? nil : navigationState.libraryMediaContext
             openDetail(.media(item, context: context))
-        }
-        .onChange(of: navigationState.librarySelectedAnime) { _, anime in
-            guard let anime else { return }
-            openDetail(.anime(anime))
         }
         .task {
             // ⚠️ 等待启动时数据源选择完成（ping Google 决策）
@@ -371,8 +337,7 @@ struct ContentView: View {
                 navigationState: navigationState,
                 wallpaperViewModel: viewModel,
                 mediaViewModel: mediaViewModel,
-                animeViewModel: animeViewModel
-            )
+                )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onReceive(NotificationCenter.default.publisher(for: .appShouldReleaseForegroundMemory)) { _ in
                 releaseForegroundMemory()
@@ -441,18 +406,6 @@ struct ContentView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .automatic)
 
-        case .anime(let anime):
-            AnimeDetailSheet(
-                anime: anime,
-                isPresented: Binding(
-                    get: { !detailPath.isEmpty },
-                    set: { if !$0 { popDetail() } }
-                )
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea()
-            .navigationBarBackButtonHidden(true)
-            .toolbar(.hidden, for: .automatic)
         }
     }
 
@@ -473,10 +426,8 @@ struct ContentView: View {
     private func clearSelectedDetailBindings() {
         navigationState.selectedWallpaper = nil
         navigationState.selectedMedia = nil
-        navigationState.selectedAnime = nil
         navigationState.librarySelectedWallpaper = nil
         navigationState.librarySelectedMedia = nil
-        navigationState.librarySelectedAnime = nil
     }
 
     private func zoomWindow() {
@@ -497,7 +448,6 @@ struct ContentView: View {
         ForegroundPrefetchManager.shared.stopAll()
         viewModel.releaseForegroundMemory()
         mediaViewModel.releaseForegroundMemory()
-        animeViewModel.releaseForegroundMemory()
         detailPath.removeAll()
         navigationState.resetForMemoryRelease()
         showUpdateSheet = false

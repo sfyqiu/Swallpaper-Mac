@@ -5,6 +5,8 @@ import AppKit
 public enum MainTab: String, CaseIterable {
     case home, wallpaperExplore, animeExplore, mediaExplore, myMedia
 
+    static var visibleCases: [MainTab] { allCases.filter { $0 != .animeExplore } }
+
     var title: String {
         switch self {
         case .home: return t("nav.home")
@@ -175,7 +177,7 @@ private struct TopBarSegmentedControl: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            ForEach(MainTab.allCases, id: \.self) { tab in
+            ForEach(MainTab.visibleCases, id: \.self) { tab in
                 Button {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
                         selectedTab = tab
