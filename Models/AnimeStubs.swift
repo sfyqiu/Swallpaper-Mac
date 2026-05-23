@@ -4,7 +4,7 @@ import AppKit
 
 // MARK: - 动漫模块已删除，以下为编译兼容 stub
 
-// MARK: - Array safe subscript (originally in Danmaku.swift)
+// Array safe subscript defined here (originally in Danmaku.swift)
 extension Array {
     subscript(safe index: Index) -> Element? {
         indices.contains(index) ? self[index] : nil
@@ -82,10 +82,15 @@ actor AnimeRuleStore {
     static let shared = AnimeRuleStore()
     func clearInMemoryCache() async {}
     func allRules() async -> [AnimeRule] { [] }
+    func removeRule(id: String) async throws {}
     func installRule(from url: URL) async throws -> AnimeRule {
+        _ = url
+        return AnimeRule(id: "", name: "", baseURL: "", searchURL: "")
+    }
+    func installRule(from urlStr: String) async throws -> AnimeRule {
+        _ = urlStr
         AnimeRule(id: "", name: "", baseURL: "", searchURL: "")
     }
-    func removeRule(id: String) async throws {}
 }
 
 // MARK: - AnimeWindowManager stub
