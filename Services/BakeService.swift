@@ -5,7 +5,7 @@ import AVFoundation
 import CoreGraphics
 import CoreMedia
 import CoreVideo
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 
 struct BakeVideoResult: Sendable {
     let outputURL: URL
