@@ -1,16 +1,16 @@
-name: WaifuX
+name: Swallpaper
 options:
-  bundleIdPrefix: com.waifux
+  bundleIdPrefix: com.swallpaper
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "26.4"
 
 # 共享 Scheme 纳入仓库，避免仅存在 xcuserdata 时换机/重装后 Cmd+R 无可用方案
 schemes:
-  WaifuX:
+  Swallpaper:
     build:
       targets:
-        WaifuX: all
+        Swallpaper: all
     run:
       config: Debug
     archive:
@@ -34,7 +34,7 @@ settings:
     COMBINE_HIDPI_IMAGES: YES
 
 targets:
-  WaifuX:
+  Swallpaper:
     type: application
     platform: macOS
     sources:
@@ -65,8 +65,8 @@ targets:
       - path: WallpaperEngineEmbeddedAssets.swift
     settings:
       base:
-        PRODUCT_NAME: WaifuX
-        PRODUCT_BUNDLE_IDENTIFIER: com.waifux.app
+        PRODUCT_NAME: Swallpaper
+        PRODUCT_BUNDLE_IDENTIFIER: com.swallpaper.app
         MARKETING_VERSION: 38.0.108
         CURRENT_PROJECT_VERSION: 38
         SWIFT_VERSION: "6.0"
