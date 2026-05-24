@@ -934,7 +934,7 @@ private struct AboutSettingsTab: View {
 
                 // 项目信息组
                 MacSettingsSection(header: t("projectInfo")) {
-                    infoRow(title: t("developer"), value: "jipika", isLast: false)
+                    infoRow(title: t("developer"), value: "sfyqiu", isLast: false)
                     infoRow(title: t("wallpaperRuleSource"), value: wallpaperRuleSourceText, isLast: false)
                     infoRow(title: t("animeRuleSource"), value: "KazumiRules", isLast: false)
                     infoRow(title: t("techStack"), value: "SwiftUI + AppKit", isLast: true)
