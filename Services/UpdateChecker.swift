@@ -189,6 +189,9 @@ final class UpdateChecker: ObservableObject {
 
         var request = URLRequest(url: url)
         request.setValue("Swallpaper-App/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        if let token = UserDefaults.standard.string(forKey: "github_token"), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         request.timeoutInterval = 30
 
         do {
@@ -245,6 +248,9 @@ final class UpdateChecker: ObservableObject {
 
         var request = URLRequest(url: url)
         request.setValue("Swallpaper-App/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        if let token = UserDefaults.standard.string(forKey: "github_token"), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         request.timeoutInterval = 30
 
         do {
@@ -458,6 +464,9 @@ final class UpdateManager: ObservableObject {
         
         var request = URLRequest(url: url)
         request.setValue("Swallpaper-App/\(UpdateChecker.shared.currentVersion)", forHTTPHeaderField: "User-Agent")
+        if let token = UserDefaults.standard.string(forKey: "github_token"), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         
         // 先尝试多线程并行下载，失败则回退到单线程
         let (downloadedFileURL, response): (URL, URLResponse)
