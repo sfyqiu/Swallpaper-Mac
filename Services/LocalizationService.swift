@@ -83,7 +83,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
     .english: [
         // Launch at Login
         "launchAtLogin": "LAUNCH AT LOGIN",
-        "launchAtLoginDesc": "Automatically start WaifuX when you log in.",
+        "launchAtLoginDesc": "Automatically start Swallpaper when you log in.",
         "launchAtLoginSubtitle": "Start minimized in menu bar, applying dynamic wallpapers automatically.",
         // Categories
         "category.general": "GENERAL",
@@ -592,7 +592,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "autoDownloadOriginal": "AUTO DOWNLOAD ORIGINAL",
         "autoDownloadDesc": "Auto cache HD originals while browsing to reduce wait time on next open.",
         "saveToDownloadsFolder": "KEEP DOWNLOADS IN APP LIBRARY",
-        "saveToDownloadsDesc": "When on, files are saved under Application Support (WaifuX). When off, playback uses a temporary cache only and items are not kept in the library.",
+        "saveToDownloadsDesc": "When on, files are saved under Application Support (Swallpaper). When off, playback uses a temporary cache only and items are not kept in the library.",
         "downloadTasks": "DOWNLOAD TASKS",
         "downloadTasksDesc": "View recent download status and quickly check queue.",
         "noDownloadTasks": "NO DOWNLOAD TASKS",
@@ -648,7 +648,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "reportProblem": "REPORT PROBLEM",
         "reportProblemDesc": "Submit bugs, suggestions, or product feedback.",
         "joinQQGroup": "JOIN QQ GROUP",
-        "joinQQGroupDesc": "Join WaifuX user QQ group.",
+        "joinQQGroupDesc": "Join Swallpaper user QQ group.",
         "minutes": "MINUTES",
         "hour": "HOUR",
         "hours": "HOURS",
@@ -1130,7 +1130,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
     .chinese: [
         // Launch at Login
         "launchAtLogin": "开机启动",
-        "launchAtLoginDesc": "登录时自动启动 WaifuX。",
+        "launchAtLoginDesc": "登录时自动启动 Swallpaper。",
         "launchAtLoginSubtitle": "启动后最小化到菜单栏，自动应用动态壁纸。",
         // Categories
         "category.general": "通用",
@@ -1639,7 +1639,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "autoDownloadOriginal": "自动下载原图",
         "autoDownloadDesc": "浏览时自动缓存高清原图，减少再次打开的等待时间。",
         "saveToDownloadsFolder": "保留在应用库",
-        "saveToDownloadsDesc": "开启时文件保存在应用数据目录（资源库/应用程序支持/WaifuX）。关闭时仅使用临时缓存播放，不写入媒体库。",
+        "saveToDownloadsDesc": "开启时文件保存在应用数据目录（资源库/应用程序支持/Swallpaper）。关闭时仅使用临时缓存播放，不写入媒体库。",
         "downloadTasks": "下载任务",
         "downloadTasksDesc": "查看近期下载状态，快速了解当前队列情况。",
         "noDownloadTasks": "暂无下载任务",
@@ -1695,7 +1695,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "reportProblem": "反馈问题",
         "reportProblemDesc": "提交 bug、建议或产品反馈。",
         "joinQQGroup": "加入 QQ 群",
-        "joinQQGroupDesc": "加入 WaifuX 用户交流群。",
+        "joinQQGroupDesc": "加入 Swallpaper 用户交流群。",
         "minutes": "分钟",
         "hour": "小时",
         "hours": "小时",
@@ -2178,7 +2178,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
     .japanese: [
         // Launch at Login
         "launchAtLogin": "ログイン時に起動",
-        "launchAtLoginDesc": "ログイン時にWaifuXを自動的に起動します。",
+        "launchAtLoginDesc": "ログイン時にSwallpaperを自動的に起動します。",
         "launchAtLoginSubtitle": "起動後はメニューバーに最小化され、動的壁纸を自動的に適用します。",
         // Categories
         "category.general": "一般",
@@ -2687,7 +2687,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "autoDownloadOriginal": "オリジナルを自動ダウンロード",
         "autoDownloadDesc": "閲覧中にHDオリジナルを自動キャッシュして次回の待ち時間を短縮。",
         "saveToDownloadsFolder": "アプリライブラリに保存",
-        "saveToDownloadsDesc": "オンにすると Application Support 内の WaifuX に保存します。オフの場合は一時キャッシュのみでライブラリには残しません。",
+        "saveToDownloadsDesc": "オンにすると Application Support 内の Swallpaper に保存します。オフの場合は一時キャッシュのみでライブラリには残しません。",
         "downloadTasks": "ダウンロードタスク",
         "downloadTasksDesc": "最近のダウンロード状態を表示し、現在のキューを素早く確認。",
         "noDownloadTasks": "ダウンロードタスクなし",
@@ -2743,7 +2743,7 @@ private let translations: [LocalizationService.Language: [String: String]] = [
         "reportProblem": "問題を報告",
         "reportProblemDesc": "バグ提案または製品フィードバックを送信。",
         "joinQQGroup": "QQグループに参加",
-        "joinQQGroupDesc": "WaifuXユーザーのQQグループに参加する。",
+        "joinQQGroupDesc": "SwallpaperユーザーのQQグループに参加する。",
         "minutes": "分",
         "hour": "時間",
         "hours": "時間",

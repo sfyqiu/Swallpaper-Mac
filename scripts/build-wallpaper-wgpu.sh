@@ -28,7 +28,7 @@ mkdir -p "$DEST_DIR" "$DEST_LIB_DIR"
 echo "🔧 wallpaper-wgpu 部署开始..."
 
 # ── 1. 复制 wallpaper-wgpu ──────────────────────────────────────
-WGUI_SRC="${WAIFUX_WGPU_SRC:-/Users/lixiongwei/Downloads/wallpaper-wgpu}"
+WGUI_SRC="${WAIFUX_WGPU_SRC:-/tmp/wallpaper-wgpu}"
 if [[ -f "$WGUI_SRC" ]]; then
   cp "$WGUI_SRC" "$DEST_DIR/wallpaper-wgpu"
   chmod +x "$DEST_DIR/wallpaper-wgpu"
@@ -38,8 +38,8 @@ else
 fi
 
 # ── 2. 复制 DXC ─────────────────────────────────────────────────
-DXC_SRC="${WAIFUX_DXC_SRC:-/Users/lixiongwei/Desktop/dxc}"
-DXC_DYLIB_SRC="${WAIFUX_DXC_DYLIB_SRC:-/Users/lixiongwei/Desktop/libdxcompiler.dylib}"
+DXC_SRC="${WAIFUX_DXC_SRC:-/tmp/dxc}"
+DXC_DYLIB_SRC="${WAIFUX_DXC_DYLIB_SRC:-/tmp/libdxcompiler.dylib}"
 
 if [[ -f "$DXC_SRC" ]]; then
   cp "$DXC_SRC" "$DEST_DIR/dxc"
@@ -71,7 +71,7 @@ ZIP_DATA_S="$DEST_DIR/zip_data.s"
 ZIP_DATA_O="$DEST_DIR/zip_data.o"
 ZIP_ACCESSOR_C="$DEST_DIR/zip_accessor.c"
 ZIP_ACCESSOR_O="$DEST_DIR/zip_accessor.o"
-TMP_ZIP="/tmp/waifux-embedded-assets-$$.zip"
+TMP_ZIP="/tmp/swallpaper-embedded-assets-$$.zip"
 rm -f "$TMP_ZIP"
 cleanup() { rm -f "$TMP_ZIP"; }
 trap cleanup EXIT

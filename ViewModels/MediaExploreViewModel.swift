@@ -94,7 +94,7 @@ final class MediaExploreViewModel: ObservableObject {
     @Published var cachedAllLocalMedia: [UnifiedLocalMedia] = []
 
     init() {
-        // 注册内存压力通知（由 WaifuXApp.configureKingfisher 中的 DispatchSource 触发）
+        // 注册内存压力通知（由 SwallpaperApp.configureKingfisher 中的 DispatchSource 触发）
         NotificationCenter.default.addObserver(
             forName: .appDidReceiveMemoryPressure,
             object: nil,
@@ -895,7 +895,7 @@ final class MediaExploreViewModel: ObservableObject {
 
     /// Workshop 内容类型
     private enum WorkshopContentType {
-        case video        // 纯视频类型，WaifuX 可直接播放
+        case video        // 纯视频类型，Swallpaper 可直接播放
         case scene        // 场景/应用类型，需要 Wallpaper Engine CLI 渲染
         case unknown
     }
@@ -1157,7 +1157,7 @@ final class MediaExploreViewModel: ObservableObject {
         }
 
         if saveToDownloads {
-            // 复制到应用内媒体库目录（Application Support 下 WaifuX/Media）
+            // 复制到应用内媒体库目录（Application Support 下 Swallpaper/Media）
             if !FileManager.default.fileExists(atPath: fileURL.path) {
                 do {
                     // 确保目标目录存在
@@ -1175,7 +1175,7 @@ final class MediaExploreViewModel: ObservableObject {
                         print("[MediaExploreViewModel] ✅ File saved successfully: \(fileURL.path)")
                     } else {
                         print("[MediaExploreViewModel] ❌ File write appeared to succeed but file not found: \(fileURL.path)")
-                        throw DownloadError.writeFailed(NSError(domain: "WaifuX", code: -1, userInfo: [NSLocalizedDescriptionKey: "File not found after write"]))
+                        throw DownloadError.writeFailed(NSError(domain: "Swallpaper", code: -1, userInfo: [NSLocalizedDescriptionKey: "File not found after write"]))
                     }
                 } catch {
                     print("[MediaExploreViewModel] ❌ Failed to write file to app media library: \(error)")
@@ -1258,7 +1258,7 @@ final class MediaExploreViewModel: ObservableObject {
     // MARK: - 内存压力处理
 
     /// 系统内存压力时自动触发：裁剪列表并取消网络请求。
-    /// Kingfisher / VideoThumbnailCache 等由 WaifuXApp 的 DispatchSource 统一清理。
+    /// Kingfisher / VideoThumbnailCache 等由 SwallpaperApp 的 DispatchSource 统一清理。
     /// 不破坏分页游标，用户继续下滑后可正常加载更多。
     private func handleMemoryPressure() {
         print("[MediaExploreViewModel] 内存压力，释放缓存: items=\(items.count)")

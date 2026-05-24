@@ -2,7 +2,7 @@ import Foundation
 import AppKit
 
 /// 下载路径管理器 - 统一管理壁纸和媒体的下载路径
-/// 默认存储在 Application Support/WaifuX，支持用户自定义到其他目录。
+/// 默认存储在 Application Support/Swallpaper，支持用户自定义到其他目录。
 @MainActor
 final class DownloadPathManager {
     static let shared = DownloadPathManager()
@@ -35,15 +35,15 @@ final class DownloadPathManager {
         return rootFolderURL.path
     }
 
-    /// 根目录: 默认 ~/Library/Application Support/WaifuX/，或用户自定义目录下 WaifuX/
+    /// 根目录: 默认 ~/Library/Application Support/Swallpaper/，或用户自定义目录下 Swallpaper/
     var rootFolderURL: URL {
         let url: URL
         if let customRoot = resolveCustomRootURL() {
-            url = customRoot.appendingPathComponent("WaifuX", isDirectory: true)
+            url = customRoot.appendingPathComponent("Swallpaper", isDirectory: true)
         } else {
             url = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
                 .first!
-                .appendingPathComponent("WaifuX", isDirectory: true)
+                .appendingPathComponent("Swallpaper", isDirectory: true)
         }
         print("[DownloadPathManager] rootFolderURL = \(url.path)")
         return url
@@ -114,14 +114,14 @@ final class DownloadPathManager {
     // MARK: - 目录选择
 
     /// 弹出目录选择器让用户选择新的下载根目录
-    /// - Returns: 选中的目录 URL（不包含 WaifuX 子目录），nil 表示用户取消
+    /// - Returns: 选中的目录 URL（不包含 Swallpaper 子目录），nil 表示用户取消
     func showDirectoryPicker() -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = "选择目录"
-        panel.message = "选择 WaifuX 下载文件的存储位置"
+        panel.message = "选择 Swallpaper 下载文件的存储位置"
 
         guard panel.runModal() == .OK, let selectedURL = panel.url else {
             return nil
@@ -129,7 +129,7 @@ final class DownloadPathManager {
         return selectedURL
     }
 
-    /// 设置自定义下载根目录（父目录，会在其下创建 WaifuX 子目录）
+    /// 设置自定义下载根目录（父目录，会在其下创建 Swallpaper 子目录）
     /// - Parameter parentURL: 用户选择的父目录
     /// - Returns: 是否成功
     @discardableResult
@@ -147,7 +147,7 @@ final class DownloadPathManager {
         }
     }
 
-    /// 恢复为默认目录（Application Support/WaifuX）
+    /// 恢复为默认目录（Application Support/Swallpaper）
     func resetToDefaultRoot() {
         defaults.removeObject(forKey: Self.customDownloadRootBookmarkKey)
         defaults.removeObject(forKey: Self.customDownloadRootPathKey)

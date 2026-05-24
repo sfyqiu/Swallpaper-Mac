@@ -13,12 +13,12 @@ actor RuleLoader {
         guard let supportDir = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             // 使用临时目录作为回退
             self.rulesDirectory = fileManager.temporaryDirectory
-                .appendingPathComponent("WaifuX", isDirectory: true)
+                .appendingPathComponent("Swallpaper", isDirectory: true)
                 .appendingPathComponent("Rules", isDirectory: true)
             return
         }
         self.rulesDirectory = supportDir
-            .appendingPathComponent("WaifuX", isDirectory: true)
+            .appendingPathComponent("Swallpaper", isDirectory: true)
             .appendingPathComponent("Rules", isDirectory: true)
 
         // 创建目录

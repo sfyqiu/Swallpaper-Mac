@@ -9,7 +9,7 @@ ASSETS_DIR="$ROOT/Resources/assets"
 SRC_MAIN="$ROOT/wallpaperengine-cli.swift"
 SRC_EMBED="$ROOT/WallpaperEngineEmbeddedAssets.swift"
 OUT_CLI="$ROOT/Resources/wallpaperengine-cli"
-TMP_ZIP="/tmp/waifux-we-assets-$$.zip"
+TMP_ZIP="/tmp/swallpaper-we-assets-$$.zip"
 rm -f "$TMP_ZIP"
 
 cleanup() { rm -f "$TMP_ZIP" "$ROOT/Resources/zip_data.s" "$ROOT/Resources/zip_data.o" "$ROOT/Resources/zip_accessor.c" "$ROOT/Resources/zip_accessor.o"; }

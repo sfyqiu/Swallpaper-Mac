@@ -253,7 +253,7 @@ class SettingsViewModel: ObservableObject {
             cacheProgress = 0
             return
         }
-        let urlCacheURL = cacheURL.appendingPathComponent("com.waifux.app/WaifuXCache")
+        let urlCacheURL = cacheURL.appendingPathComponent("com.swallpaper.app/SwallpaperCache")
         var urlCacheBytes = 0
         if let enumerator = FileManager.default.enumerator(at: urlCacheURL, includingPropertiesForKeys: [.fileSizeKey]) {
             while let fileURL = enumerator.nextObject() as? URL {
@@ -281,7 +281,7 @@ class SettingsViewModel: ObservableObject {
             await updateCacheSize()
             return
         }
-        let urlCacheURL = cacheURL.appendingPathComponent("com.waifux.app/WaifuXCache")
+        let urlCacheURL = cacheURL.appendingPathComponent("com.swallpaper.app/SwallpaperCache")
         try? FileManager.default.removeItem(at: urlCacheURL)
         try? FileManager.default.createDirectory(at: cacheURL.appendingPathComponent("com.wallhaven.app"), withIntermediateDirectories: true)
 
@@ -304,9 +304,9 @@ class SettingsViewModel: ObservableObject {
         URLCache.shared.removeAllCachedResponses()
         if let cacheURL = fm.urls(for: .cachesDirectory, in: .userDomainMask).first {
             let targets = [
-                cacheURL.appendingPathComponent("com.waifux.app/WaifuXCache"),
+                cacheURL.appendingPathComponent("com.swallpaper.app/SwallpaperCache"),
                 cacheURL.appendingPathComponent("WallHaven/ImageCache"),
-                cacheURL.appendingPathComponent("com.waifux.app"),
+                cacheURL.appendingPathComponent("com.swallpaper.app"),
                 cacheURL.appendingPathComponent("org.onevcat.Kingfisher.ImageCache.default")
             ]
             for url in targets {
@@ -317,7 +317,7 @@ class SettingsViewModel: ObservableObject {
         // 4. Application Support 下的应用数据
         if let supportURL = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
             let targets = [
-                supportURL.appendingPathComponent("WaifuX"),
+                supportURL.appendingPathComponent("Swallpaper"),
                 supportURL.appendingPathComponent("WallHaven")
             ]
             for url in targets {

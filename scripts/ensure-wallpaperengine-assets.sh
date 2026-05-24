@@ -19,7 +19,7 @@ fi
 
 echo "[ensure-assets] 下载材质包..."
 mkdir -p "$ROOT/Resources"
-TMP="/tmp/waifux-wh-assets-pack-$$.zip"
+TMP="/tmp/swallpaper-wh-assets-pack-$$.zip"
 curl -fL "$URL" -o "$TMP"
 unzip -q -o "$TMP" -d "$ROOT/Resources"
 rm -f "$TMP"

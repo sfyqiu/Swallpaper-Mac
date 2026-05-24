@@ -943,7 +943,7 @@ private struct AboutSettingsTab: View {
                 // 链接组
                 MacSettingsSection(header: t("links")) {
                     MacLinkRow(title: t("visitWebsite"), action: {
-                        if let url = URL(string: "https://github.com/jipika/WaifuX") {
+                        if let url = URL(string: "https://github.com/sfyqiu/Swallpaper-Mac") {
                             NSWorkspace.shared.open(url)
                         }
                     })
@@ -951,7 +951,7 @@ private struct AboutSettingsTab: View {
                     Divider().background(Color.white.opacity(0.06)).padding(.leading, 16)
 
                     MacLinkRow(title: t("reportProblem"), action: {
-                        if let url = URL(string: "https://github.com/jipika/WaifuX") {
+                        if let url = URL(string: "https://github.com/sfyqiu/Swallpaper-Mac") {
                             NSWorkspace.shared.open(url)
                         }
                     })
@@ -1034,7 +1034,7 @@ private struct AboutSettingsTab: View {
                         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("WaifuX")
+                        Text("Swallpaper")
                             .font(.system(size: 17, weight: .bold))
                             .foregroundStyle(Color.white.opacity(0.92))
 
@@ -1306,9 +1306,9 @@ struct SettingsUpdateSection: View {
         latestVersion: "38.0.25",
         release: GitHubRelease(
             tagName: "v38.0.25",
-            name: "WaifuX 38.0.25",
+            name: "Swallpaper 38.0.25",
             body: "修复了一些问题",
-            htmlUrl: "https://github.com/jipika/WaifuX/releases/tag/v38.0.25",
+            htmlUrl: "https://github.com/sfyqiu/Swallpaper-Mac/releases/tag/v38.0.25",
             publishedAt: "2024-01-01T00:00:00Z",
             prerelease: false,
             draft: false,

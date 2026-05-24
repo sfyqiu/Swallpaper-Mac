@@ -89,7 +89,7 @@ class WallpaperViewModel: ObservableObject {
     }
 
     // API Key - 使用 Keychain 安全存储（优化：内存缓存 + 异步访问）
-    private let apiKeyService = "com.waifux.wallhaven.apikey"
+    private let apiKeyService = "com.swallpaper.wallhaven.apikey"
     private let apiKeyAccount = "wallhaven_api_key"
 
     // 内存缓存，避免重复 Keychain 访问
@@ -419,7 +419,7 @@ class WallpaperViewModel: ObservableObject {
         if let wallpaperID = Self.extractWallhavenID(from: urlString) {
             return try await resolveWallhavenWallpaperByID(wallpaperID)
         }
-        throw NSError(domain: "WaifuX", code: -1, userInfo: [NSLocalizedDescriptionKey: "无法解析此链接，仅支持 Wallhaven 链接（wallhaven.cc/w/{id}）"])
+        throw NSError(domain: "Swallpaper", code: -1, userInfo: [NSLocalizedDescriptionKey: "无法解析此链接，仅支持 Wallhaven 链接（wallhaven.cc/w/{id}）"])
     }
 
     /// 通过 Wallhaven API 按 ID 获取壁纸详情
@@ -997,7 +997,7 @@ class WallpaperViewModel: ObservableObject {
                 wallpaperLibrary.recordDownload(wallpaper, fileURL: fileURL)
                 downloadTaskService.markCompleted(id: task.id)
             } else {
-                throw DownloadError.writeFailed(NSError(domain: "WaifuX", code: -1, userInfo: [NSLocalizedDescriptionKey: "File not found after write"]))
+                throw DownloadError.writeFailed(NSError(domain: "Swallpaper", code: -1, userInfo: [NSLocalizedDescriptionKey: "File not found after write"]))
             }
         }
 
@@ -1131,11 +1131,11 @@ class WallpaperViewModel: ObservableObject {
     // MARK: - 设为壁纸（通过 Wallpaper 对象）
     func setAsWallpaper(_ wallpaper: Wallpaper, targetScreen: NSScreen? = nil) async throws {
         guard let imageURL = wallpaper.fullImageURL else {
-            throw NSError(domain: "WaifuX", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid image URL"])
+            throw NSError(domain: "Swallpaper", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid image URL"])
         }
         let screen = targetScreen ?? NSScreen.main
         guard let screen else {
-            throw NSError(domain: "WaifuX", code: 2, userInfo: [NSLocalizedDescriptionKey: "No screen available"])
+            throw NSError(domain: "Swallpaper", code: 2, userInfo: [NSLocalizedDescriptionKey: "No screen available"])
         }
         // 直通到统一的 setWallpaper，确保手动设置和自动更换完全共用同一条路径
         try await setWallpaper(from: imageURL, option: .desktop, for: screen)

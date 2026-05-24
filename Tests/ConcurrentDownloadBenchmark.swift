@@ -8,7 +8,7 @@ import Foundation
 
 /// 测试目标：找一个支持 Range 的大文件
 /// 默认使用 GitHub Release asset（通常 30-100MB，CDN 支持 Range）
-let testURLString = CommandLine.arguments.dropFirst().first ?? "https://github.com/jipika/WaifuX/releases/download/v1.0.0/WaifuX.dmg"
+let testURLString = CommandLine.arguments.dropFirst().first ?? "https://github.com/sfyqiu/Swallpaper-Mac/releases/download/v1.0.0/Swallpaper.dmg"
 
 /// 并发 chunk 数量（与 UpdateChecker 配置一致）
 let parallelChunkCount = 6
@@ -262,7 +262,7 @@ func downloadParallel(
 // MARK: - 主测试流程
 
 await Task {
-    printHeader("WaifuX 更新下载并发基准测试")
+    printHeader("Swallpaper 更新下载并发基准测试")
     print("测试目标 URL: \(testURLString)")
     print("并发配置: \(parallelChunkCount) 线程")
     print("重复次数: \(repeatCount) 次")
@@ -281,7 +281,7 @@ await Task {
     let session = URLSession(configuration: config)
     
     var request = URLRequest(url: url)
-    request.setValue("WaifuX-DownloadBenchmark/1.0", forHTTPHeaderField: "User-Agent")
+    request.setValue("Swallpaper-DownloadBenchmark/1.0", forHTTPHeaderField: "User-Agent")
     
     // 先探测文件信息
     print("\n探测文件信息...")

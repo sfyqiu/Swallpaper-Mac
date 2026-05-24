@@ -15,7 +15,7 @@ import AppKit
 final class DesktopWallpaperSyncManager {
     static let shared = DesktopWallpaperSyncManager()
 
-    /// 每个屏幕最后通过 WaifuX 设置的静态壁纸 URL（key 为 screenID）
+    /// 每个屏幕最后通过 Swallpaper 设置的静态壁纸 URL（key 为 screenID）
     private var lastSetImageURLByScreen: [String: URL] = [:]
     /// 每个物理显示器指纹最后设置的静态壁纸 URL，用于外接屏重连后 screenID 变化时恢复。
     private var lastSetImageURLByFingerprint: [String: URL] = [:]

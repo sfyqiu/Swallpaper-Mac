@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 将 macOS 官方 SteamCMD 放进 Resources/steamcmd（打进 WaifuX.app，克隆即可构建）。
+# 将 macOS 官方 SteamCMD 放进 Resources/steamcmd（打进 Swallpaper.app，克隆即可构建）。
 #   ./scripts/sync-steamcmd-into-resources.sh
 #       从 Valve CDN 下载并解压（默认）。
 #   ./scripts/sync-steamcmd-into-resources.sh /path/to/extracted-steamcmd

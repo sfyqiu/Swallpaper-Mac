@@ -31,7 +31,7 @@ class WallpaperSchedulerService: ObservableObject {
     private var displayFingerprints: [String: String] = [:]
 
     /// 视频播放完成通知（用于"播完即换"模式）
-    static let videoPlaybackEndedNotification = Notification.Name("com.waifux.scheduler.videoPlaybackEnded")
+    static let videoPlaybackEndedNotification = Notification.Name("com.swallpaper.scheduler.videoPlaybackEnded")
 
     private init() {
         DistributedNotificationCenter.default.addObserver(

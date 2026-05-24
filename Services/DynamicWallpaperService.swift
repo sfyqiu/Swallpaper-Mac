@@ -7,11 +7,11 @@ import AppKit
 /// 数据来源为阿里云 OSS 托管的 .cxy（RNCryptor v3 加密）文件，
 /// 解密后为 JSON 格式的视频壁纸列表。
 ///
-/// 该服务支持加载本地解密后的 JSON 文件，将其转换为 WaifuX 内部的 MediaItem。
+/// 该服务支持加载本地解密后的 JSON 文件，将其转换为 Swallpaper 内部的 MediaItem。
 ///
 /// 数据文件预期位置（按优先级）：
 /// 1. App Bundle 内的 Resources/dongtai/ 目录
-/// 2. Application Support/com.waifux.app/dongtai/ 目录
+/// 2. Application Support/com.swallpaper.app/dongtai/ 目录
 /// 3. 用户指定的自定义路径
 @MainActor
 final class DynamicWallpaperService: ObservableObject {
@@ -352,7 +352,7 @@ final class DynamicWallpaperService: ObservableObject {
             return false
         }
 
-        let dataDir = appSupport.appendingPathComponent("com.waifux.app").appendingPathComponent(dataSubdirectory)
+        let dataDir = appSupport.appendingPathComponent("com.swallpaper.app").appendingPathComponent(dataSubdirectory)
         let collectionURL = dataDir.appendingPathComponent(collectionFileName)
         let exclusiveURL = dataDir.appendingPathComponent(exclusiveFileName)
 

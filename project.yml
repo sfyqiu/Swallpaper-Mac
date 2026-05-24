@@ -120,7 +120,7 @@ targets:
             exit 1
           fi
 
-          TMP_ZIP="/tmp/waifux-embedded-assets-$$.zip"
+          TMP_ZIP="/tmp/swallpaper-embedded-assets-$$.zip"
           rm -f "$TMP_ZIP"
           if [ "$HAS_ASSETS" = "true" ]; then
             (cd Resources && zip -r -q "$TMP_ZIP" assets)
@@ -278,6 +278,6 @@ targets:
             sign_file_if_present "$DXC_LIB"
           done
     entitlements:
-      path: WaifuX.entitlements
+      path: Swallpaper.entitlements
       properties:
         com.apple.security.network.client: true

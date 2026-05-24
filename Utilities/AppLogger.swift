@@ -1,8 +1,8 @@
 import Foundation
 import os.log
 
-// MARK: - WaifuX 结构化日志系统
-/// 统一日志输出：控制台（OSLog）+ 文件（ApplicationSupport/waifux.log）
+// MARK: - Swallpaper 结构化日志系统
+/// 统一日志输出：控制台（OSLog）+ 文件（ApplicationSupport/swallpaper.log）
 /// 用途：排查用户端异常（卡死、加载中、滚动冻结等）
 ///
 /// 使用方式：
@@ -64,17 +64,17 @@ final class AppLogger: @unchecked Sendable {
     /// 文件路径
     private lazy var logFileURL: URL? = {
         guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
-        let waifuXDir = appSupport.appendingPathComponent("WaifuX", isDirectory: true)
+        let waifuXDir = appSupport.appendingPathComponent("Swallpaper", isDirectory: true)
         try? FileManager.default.createDirectory(at: waifuXDir, withIntermediateDirectories: true)
-        return waifuXDir.appendingPathComponent("waifux.log")
+        return waifuXDir.appendingPathComponent("swallpaper.log")
     }()
 
     // os.log subsystem
-    private static let subsystem = "com.waifux.app"
-    private static let oslog = OSLog(subsystem: subsystem, category: "WaifuX")
+    private static let subsystem = "com.swallpaper.app"
+    private static let oslog = OSLog(subsystem: subsystem, category: "Swallpaper")
 
     // 队列保证线程安全写入文件
-    private let queue = DispatchQueue(label: "com.waifux.logger", qos: .utility)
+    private let queue = DispatchQueue(label: "com.swallpaper.logger", qos: .utility)
 
     private init() {}
 

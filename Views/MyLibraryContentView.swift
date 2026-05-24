@@ -671,10 +671,10 @@ struct MyLibraryContentView: View {
             .filter { currentItemIDs.contains($0) }
 
         guard selectedItems.contains(itemID), !selectedMovableIDs.isEmpty else {
-            return "waifux:item:\(itemID)"
+            return "swallpaper:item:\(itemID)"
         }
 
-        return "waifux:items:\(selectedMovableIDs.sorted().joined(separator: "\n"))"
+        return "swallpaper:items:\(selectedMovableIDs.sorted().joined(separator: "\n"))"
     }
 
     // MARK: - Image Preloading
@@ -2194,7 +2194,7 @@ private struct AnyMediaItem: Identifiable {
     private static func shouldProbeAnimatedThumbnail(url: URL, mediaItem: MediaItem) -> Bool {
         if url.isFileURL {
             let path = url.standardizedFileURL.path
-            if path.contains("/WaifuX/VideoThumbnails/") {
+            if path.contains("/Swallpaper/VideoThumbnails/") {
                 return false
             }
 

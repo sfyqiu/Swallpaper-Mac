@@ -1,6 +1,6 @@
 # SteamCMD（macOS，随 App 打包）
 
-本目录为 Valve 官方 **SteamCMD for macOS** 解压后的内容，构建 WaifuX 时会打进 `WaifuX.app/Contents/Resources/steamcmd/`。首次使用 Workshop 相关功能时，应用会把该目录复制到可写的 Application Support 路径再执行（SteamCMD 需要写入配置与自更新缓存）。
+本目录为 Valve 官方 **SteamCMD for macOS** 解压后的内容，构建 Swallpaper 时会打进 `Swallpaper.app/Contents/Resources/steamcmd/`。首次使用 Workshop 相关功能时，应用会把该目录复制到可写的 Application Support 路径再执行（SteamCMD 需要写入配置与自更新缓存）。
 
 ## 维护者更新本目录
 

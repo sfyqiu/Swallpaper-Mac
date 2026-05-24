@@ -2327,7 +2327,7 @@ struct MediaDetailSheet: View {
 
     /// Workshop 内容类型
     private enum WorkshopContentType: Equatable {
-        case video        // 纯视频类型，WaifuX 可直接播放
+        case video        // 纯视频类型，Swallpaper 可直接播放
         case scene        // 场景类型，需要 Wallpaper Engine CLI 渲染
         case web          // Web 类型，需要 Wallpaper Engine CLI 渲染
         case image        // 静态图片壁纸（无 type/file，有 background 图片）

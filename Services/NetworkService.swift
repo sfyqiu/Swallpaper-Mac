@@ -11,7 +11,7 @@ actor NetworkService {
     private var networkMonitor: NetworkMonitor? = nil
 
     private init() {
-        // 使用全局 URLCache.shared（已在 WaifuXApp.swift 中配置），避免重复缓存层
+        // 使用全局 URLCache.shared（已在 SwallpaperApp.swift 中配置），避免重复缓存层
         self.cache = URLCache.shared
 
         // 配置 URLSession - 使用缓存以减少重复请求

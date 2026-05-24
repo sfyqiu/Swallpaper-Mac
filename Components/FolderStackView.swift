@@ -165,13 +165,13 @@ struct LibraryFolderCard: View {
     }
 
     private func parseDropPayload(_ payload: String) -> [String] {
-        if payload.hasPrefix("waifux:items:") {
+        if payload.hasPrefix("swallpaper:items:") {
             return String(payload.dropFirst(13))
                 .split(separator: "\n")
                 .map(String.init)
                 .filter { !$0.isEmpty }
         }
-        if payload.hasPrefix("waifux:item:") {
+        if payload.hasPrefix("swallpaper:item:") {
             return [String(payload.dropFirst(12))]
         }
         return []

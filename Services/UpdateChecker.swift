@@ -188,7 +188,7 @@ final class UpdateChecker: ObservableObject {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("WaifuX-App/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Swallpaper-App/\(currentVersion)", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 30
 
         do {
@@ -244,7 +244,7 @@ final class UpdateChecker: ObservableObject {
         }
 
         var request = URLRequest(url: url)
-        request.setValue("WaifuX-App/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Swallpaper-App/\(currentVersion)", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 30
 
         do {
@@ -427,7 +427,7 @@ final class UpdateManager: ObservableObject {
         
         // 创建最终下载路径
         let tempDir = FileManager.default.temporaryDirectory
-        let tempFile = tempDir.appendingPathComponent("WaifuX_\(version)_update.dmg")
+        let tempFile = tempDir.appendingPathComponent("Swallpaper_\(version)_update.dmg")
         
         // 清理已存在的临时文件
         if FileManager.default.fileExists(atPath: tempFile.path) {
@@ -457,7 +457,7 @@ final class UpdateManager: ObservableObject {
         let session = URLSession(configuration: config)
         
         var request = URLRequest(url: url)
-        request.setValue("WaifuX-App/\(UpdateChecker.shared.currentVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Swallpaper-App/\(UpdateChecker.shared.currentVersion)", forHTTPHeaderField: "User-Agent")
         
         // 先尝试多线程并行下载，失败则回退到单线程
         let (downloadedFileURL, response): (URL, URLResponse)
@@ -600,7 +600,7 @@ final class UpdateManager: ObservableObject {
         let chunkSize = Int(totalSize) / chunkCount
         
         let tempDir = FileManager.default.temporaryDirectory
-        let finalFile = tempDir.appendingPathComponent("WaifuX_update_\(UUID().uuidString).dmg")
+        let finalFile = tempDir.appendingPathComponent("Swallpaper_update_\(UUID().uuidString).dmg")
         FileManager.default.createFile(atPath: finalFile.path, contents: nil)
         
         let progress = DownloadProgressTracker(total: totalSize, handler: progressHandler)
@@ -669,7 +669,7 @@ final class UpdateManager: ObservableObject {
                         return ChunkInfo(index: i, data: chunkData, file: nil, startOffset: start)
                     } else {
                         // 大 chunk 使用临时文件，避免内存占用过高
-                        let chunkFile = tempDir.appendingPathComponent("WaifuX_chunk_\(i)_\(UUID().uuidString).tmp")
+                        let chunkFile = tempDir.appendingPathComponent("Swallpaper_chunk_\(i)_\(UUID().uuidString).tmp")
                         FileManager.default.createFile(atPath: chunkFile.path, contents: nil)
                         let chunkHandle = try FileHandle(forWritingTo: chunkFile)
                         defer { try? chunkHandle.close() }
@@ -763,7 +763,7 @@ final class UpdateManager: ObservableObject {
         guard expectedLength > 0 else {
             // 无法获取大小，直接下载不报告进度
             let tempDir = FileManager.default.temporaryDirectory
-            let tempFile = tempDir.appendingPathComponent("WaifuX_update_\(UUID().uuidString).dmg")
+            let tempFile = tempDir.appendingPathComponent("Swallpaper_update_\(UUID().uuidString).dmg")
             var data = Data()
             for try await byte in asyncBytes {
                 data.append(byte)
@@ -774,7 +774,7 @@ final class UpdateManager: ObservableObject {
         
         // 流式下载 + 精确进度报告
         let tempDir = FileManager.default.temporaryDirectory
-        let tempFile = tempDir.appendingPathComponent("WaifuX_update_\(UUID().uuidString).dmg")
+        let tempFile = tempDir.appendingPathComponent("Swallpaper_update_\(UUID().uuidString).dmg")
         
         // 确保临时文件不存在
         if FileManager.default.fileExists(atPath: tempFile.path) {
@@ -826,7 +826,7 @@ final class UpdateManager: ObservableObject {
     
     private func createAppleScript(dmgPath: String) -> String {
         let appName = "Swallpaper"
-        _ = Bundle.main.bundleIdentifier ?? "com.waifux.app"
+        _ = Bundle.main.bundleIdentifier ?? "com.swallpaper.app"
         
         // 创建 bash 脚本文件并执行（参考 AltTab 实现）
         let scriptContent = """
@@ -845,7 +845,7 @@ osascript -e 'quit app "$APP_NAME"' 2>/dev/null || true
 sleep 2
 
 # 创建临时挂载点
-MOUNT_POINT="/tmp/WaifuX_Update_$$"
+MOUNT_POINT="/tmp/Swallpaper_Update_$$"
 mkdir -p "$MOUNT_POINT"
 
 # 挂载 DMG
@@ -885,7 +885,7 @@ rm -f "$DMG_PATH"
         
         // 写入临时脚本文件
         let tempDir = FileManager.default.temporaryDirectory
-        let scriptPath = tempDir.appendingPathComponent("waifux_update_\(UUID().uuidString).sh")
+        let scriptPath = tempDir.appendingPathComponent("swallpaper_update_\(UUID().uuidString).sh")
         
         do {
             try scriptContent.write(toFile: scriptPath.path, atomically: true, encoding: .utf8)

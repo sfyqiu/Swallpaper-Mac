@@ -348,7 +348,7 @@ struct MediaDownloadRecord: Identifiable, Codable, Hashable {
     var folderID: String?
     /// Workshop scene 离线烘焙资格（下载入库后异步写入；`analysisId` 用于后续缓存键）
     var sceneBakeEligibility: SceneBakeEligibilitySnapshot?
-    /// 已成功烘焙的循环视频路径（与下载库 `DownloadPathManager.rootFolderURL` 下同级的 `SceneBakes/...`；默认即 Application Support 下 WaifuX）；与 eligibility 的 analysisId 一致时视为命中缓存
+    /// 已成功烘焙的循环视频路径（与下载库 `DownloadPathManager.rootFolderURL` 下同级的 `SceneBakes/...`；默认即 Application Support 下 Swallpaper）；与 eligibility 的 analysisId 一致时视为命中缓存
     var sceneBakeArtifact: SceneBakeArtifact?
     /// 是否已完成 crossfade 循环预处理（替换原始文件后标记为 true）
     var isLooped: Bool?

@@ -1,7 +1,7 @@
 import Foundation
 import CryptoKit
 
-// MARK: - 通过汇编 .incbin 嵌入在 WaifuX 主二进制中的 ZIP 材质包
+// MARK: - 通过汇编 .incbin 嵌入在 Swallpaper 主二进制中的 ZIP 材质包
 //（运行时解压后传给 wallpaper-wgpu --assets）
 
 @_silgen_name("get_zip_data_ptr")
@@ -39,7 +39,7 @@ enum WallpaperEngineEmbeddedAssets {
             return nil
         }
         let extractRoot = cacheBase
-            .appendingPathComponent("com.waifux.wallpaperengine", isDirectory: true)
+            .appendingPathComponent("com.swallpaper.wallpaperengine", isDirectory: true)
             .appendingPathComponent("embedded-assets", isDirectory: true)
             .appendingPathComponent(cacheKey, isDirectory: true)
 

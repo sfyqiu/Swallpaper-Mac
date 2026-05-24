@@ -180,7 +180,7 @@ final class StatusBarController: NSObject {
         var image: NSImage?
 
         for name in systemImageNames {
-            if let img = NSImage(systemSymbolName: name, accessibilityDescription: "WaifuX") {
+            if let img = NSImage(systemSymbolName: name, accessibilityDescription: "Swallpaper") {
                 image = img
                 break
             }
@@ -197,7 +197,7 @@ final class StatusBarController: NSObject {
             button.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
         }
 
-        button.toolTip = "WaifuX"
+        button.toolTip = "Swallpaper"
 
         openWindowItem.target = self
         openLibraryItem.target = self

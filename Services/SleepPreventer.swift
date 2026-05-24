@@ -19,7 +19,7 @@ final class SleepPreventer {
         let displayResult = IOPMAssertionCreateWithName(
             kIOPMAssertionTypeNoDisplaySleep as CFString,
             IOPMAssertionLevel(kIOPMAssertionLevelOn),
-            "WaifuX 正在播放视频" as CFString,
+            "Swallpaper 正在播放视频" as CFString,
             &displayAssertionID
         )
         
@@ -27,7 +27,7 @@ final class SleepPreventer {
         let idleResult = IOPMAssertionCreateWithName(
             kIOPMAssertionTypeNoIdleSleep as CFString,
             IOPMAssertionLevel(kIOPMAssertionLevelOn),
-            "WaifuX 正在播放视频" as CFString,
+            "Swallpaper 正在播放视频" as CFString,
             &idleAssertionID
         )
         

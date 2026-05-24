@@ -55,7 +55,7 @@ final class EdgeToEdgeHostingView<Content: View>: NSHostingView<Content> {
 }
 
 @main
-struct WaifuXApp {
+struct SwallpaperApp {
     #if os(macOS)
     private nonisolated(unsafe) static var memoryPressureSource: DispatchSourceMemoryPressure?
     #endif
@@ -129,7 +129,7 @@ struct WaifuXApp {
         let diskCapacity = 500_000_000
         let cacheDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
             .first?
-            .appendingPathComponent("WaifuXImageCache", isDirectory: true)
+            .appendingPathComponent("SwallpaperImageCache", isDirectory: true)
 
         if let cacheDirectory {
             do {
@@ -143,7 +143,7 @@ struct WaifuXApp {
                     directory: cacheDirectory
                 )
             } catch {
-                print("[WaifuXApp] Failed to create URLCache directory at \(cacheDirectory.path): \(error)")
+                print("[SwallpaperApp] Failed to create URLCache directory at \(cacheDirectory.path): \(error)")
             }
         }
 
@@ -201,7 +201,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // MARK: - 窗口自动保存名称
     private enum WindowAutosaveName {
-        static let mainWindow = "WaifuXMainWindow"
+        static let mainWindow = "SwallpaperMainWindow"
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -249,7 +249,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         window?.collectionBehavior = .fullScreenPrimary
 
-        window?.title = "WaifuX"
+        window?.title = "Swallpaper"
         window?.titlebarAppearsTransparent = true
         window?.titleVisibility = .hidden
         window?.isOpaque = true
@@ -419,7 +419,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 defer: false
             )
 
-            window?.title = "WaifuX"
+            window?.title = "Swallpaper"
             window?.titlebarAppearsTransparent = true
             window?.titleVisibility = .hidden
             window?.isOpaque = true
@@ -579,7 +579,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             ofTypes: cacheTypes,
             modifiedSince: .distantPast
         ) {
-            print("[WaifuXApp] WebKit foreground caches cleared")
+            print("[SwallpaperApp] WebKit foreground caches cleared")
         }
     }
 
@@ -633,11 +633,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         // App 菜单
         let appMenuItem = NSMenuItem()
-        let appMenu = NSMenu(title: "WaifuX")
-        appMenu.addItem(NSMenuItem(title: "About WaifuX", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
+        let appMenu = NSMenu(title: "Swallpaper")
+        appMenu.addItem(NSMenuItem(title: "About Swallpaper", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
         appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(withTitle: "Hide WaifuX", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "Quit WaifuX", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Hide Swallpaper", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "Quit Swallpaper", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
 

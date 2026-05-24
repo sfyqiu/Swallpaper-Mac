@@ -2298,7 +2298,7 @@ final class VideoLoopPreprocessingService: ObservableObject {
 
     private init() {
         tempDirectory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("WaifuXLoopExport", isDirectory: true)
+            .appendingPathComponent("SwallpaperLoopExport", isDirectory: true)
         try? FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
     }
 

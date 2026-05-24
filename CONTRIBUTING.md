@@ -1,8 +1,8 @@
-# Contributing to WaifuX / 为 WaifuX 贡献
+# Contributing to Swallpaper / 为 Swallpaper 贡献
 
-Thank you for your interest in contributing to WaifuX! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to Swallpaper! This document provides guidelines for contributing to the project.
 
-感谢您对 WaifuX 的贡献兴趣！本文档提供了为项目贡献的指南。
+感谢您对 Swallpaper 的贡献兴趣！本文档提供了为项目贡献的指南。
 
 ---
 
@@ -56,11 +56,11 @@ Enhancement suggestions are tracked as GitHub issues.
 ### Development Setup
 
 ```bash
-git clone https://github.com/yourusername/WaifuX.git
-cd WaifuX
+git clone https://github.com/yourusername/Swallpaper.git
+cd Swallpaper
 ```
 
-Open `WaifuX.xcodeproj` in Xcode 16 or later.
+Open `Swallpaper.xcodeproj` in Xcode 16 or later.
 
 ### Coding Standards
 
@@ -115,11 +115,11 @@ Open `WaifuX.xcodeproj` in Xcode 16 or later.
 ### 开发环境设置
 
 ```bash
-git clone https://github.com/yourusername/WaifuX.git
-cd WaifuX
+git clone https://github.com/yourusername/Swallpaper.git
+cd Swallpaper
 ```
 
-在 Xcode 16 或更高版本中打开 `WaifuX.xcodeproj`。
+在 Xcode 16 或更高版本中打开 `Swallpaper.xcodeproj`。
 
 ### 编码规范
 

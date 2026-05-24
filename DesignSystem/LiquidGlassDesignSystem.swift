@@ -981,7 +981,7 @@ class ThemeManager: ObservableObject {
     
     private init() {
         // ⚠️ 不在 init 中读 UserDefaults，避免 _CFXPreferences 递归栈溢出
-        // 使用默认深色主题（WaifuX 是纯深色设计），用户偏好通过 restoreSavedSettings() 延迟恢复
+        // 使用默认深色主题（Swallpaper 是纯深色设计），用户偏好通过 restoreSavedSettings() 延迟恢复
         self.themeMode = .dark
         
         // 监听系统主题变化

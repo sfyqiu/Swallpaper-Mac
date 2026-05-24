@@ -252,7 +252,7 @@ final class DirectoryMigrationService {
 
         let defaultRoot = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first!
-            .appendingPathComponent("WaifuX", isDirectory: true)
+            .appendingPathComponent("Swallpaper", isDirectory: true)
         let currentRoot = DownloadPathManager.shared.rootFolderURL
 
         let oldPath = defaultRoot.path
@@ -316,7 +316,7 @@ final class DirectoryMigrationService {
         // 收集所有可能的根目录
         let currentRoot = DownloadPathManager.shared.rootFolderURL.path
         let defaultRoot = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first!.appendingPathComponent("WaifuX").path
+            .first!.appendingPathComponent("Swallpaper").path
         let candidateRoots = Array(Set([currentRoot, defaultRoot])).filter { !$0.isEmpty }
 
         // ── 修复 MediaLibraryService ──
@@ -384,7 +384,7 @@ final class DirectoryMigrationService {
         for root in candidateRoots {
             let rootWithSlash = root.hasSuffix("/") ? root : root + "/"
             if originalPath.hasPrefix(rootWithSlash) { continue }
-            if let range = originalPath.range(of: "/WaifuX/") {
+            if let range = originalPath.range(of: "/Swallpaper/") {
                 let relativePath = String(originalPath[range.upperBound...])
                 let candidate = rootWithSlash + relativePath
                 if fm.fileExists(atPath: candidate) {
@@ -401,7 +401,7 @@ final class DirectoryMigrationService {
         let rootWithSlash = currentRoot.hasSuffix("/") ? currentRoot : currentRoot + "/"
         if sourcePath.hasPrefix(rootWithSlash) { return nil }
 
-        guard let range = sourcePath.range(of: "/WaifuX/") else { return nil }
+        guard let range = sourcePath.range(of: "/Swallpaper/") else { return nil }
         let relativePath = String(sourcePath[range.upperBound...])
         let targetPath = rootWithSlash + relativePath
 

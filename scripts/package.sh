@@ -1,17 +1,17 @@
 #!/bin/bash
-# WaifuX 打包脚本
+# Swallpaper 打包脚本
 # 用法: ./scripts/package.sh
 
 set -e
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
-ARCHIVE_NAME="WaifuX.xcarchive"
-DMG_NAME="WaifuX.dmg"
-APP_NAME="WaifuX.app"
+ARCHIVE_NAME="Swallpaper.xcarchive"
+DMG_NAME="Swallpaper.dmg"
+APP_NAME="Swallpaper.app"
 RENDERER_ENTITLEMENTS="$PROJECT_DIR/WallpaperRenderer.entitlements"
 
-echo "📦 WaifuX 打包开始..."
+echo "📦 Swallpaper 打包开始..."
 echo "项目目录: $PROJECT_DIR"
 
 require_packaged_file() {
@@ -123,7 +123,7 @@ mkdir -p "$BUILD_DIR"
 
 # Archive
 echo "🔨 正在 Archive..."
-xcodebuild -scheme WaifuX -configuration Release clean archive \
+xcodebuild -scheme Swallpaper -configuration Release clean archive \
   CODE_SIGN_IDENTITY="-" \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGNING_ALLOWED=NO \
@@ -198,7 +198,7 @@ find_codesign_identity() {
 sign_exported_app() {
   local app_path="$1"
   local identity="$2"
-  local entitlements="$PROJECT_DIR/WaifuX.entitlements"
+  local entitlements="$PROJECT_DIR/Swallpaper.entitlements"
   local renderer_entitlements="$PROJECT_DIR/WallpaperRenderer.entitlements"
 
   echo "🔏 正在签名导出的 App..."
@@ -262,10 +262,10 @@ if [ "${WAIFUX_SKIP_DMG:-}" != "1" ]; then
   if command -v create-dmg &> /dev/null; then
       set +e
       create-dmg \
-        --volname "WaifuX" \
+        --volname "Swallpaper" \
         --window-size 540 400 \
         --app-drop-link 400 185 \
-        --hide-extension "WaifuX.app" \
+        --hide-extension "Swallpaper.app" \
         --no-internet-enable \
         "$BUILD_DIR/$DMG_NAME" \
         "$BUILD_DIR/$APP_NAME"
@@ -274,7 +274,7 @@ if [ "${WAIFUX_SKIP_DMG:-}" != "1" ]; then
       if [ $CREATE_DMG_STATUS -ne 0 ]; then
           echo "⚠️ create-dmg 失败，使用 hdiutil 生成标准 DMG..."
           rm -f "$BUILD_DIR/$DMG_NAME" "$BUILD_DIR"/rw.*."$DMG_NAME"
-          hdiutil create -volname "WaifuX" \
+          hdiutil create -volname "Swallpaper" \
             -srcfolder "$BUILD_DIR/$APP_NAME" \
             -ov -format UDZO \
             -imagekey zlib-level=9 \
@@ -282,7 +282,7 @@ if [ "${WAIFUX_SKIP_DMG:-}" != "1" ]; then
       fi
   else
       echo "⚠️ create-dmg 未安装，使用 hdiutil..."
-      hdiutil create -volname "WaifuX" \
+      hdiutil create -volname "Swallpaper" \
         -srcfolder "$BUILD_DIR/$APP_NAME" \
         -ov -format UDZO \
         -imagekey zlib-level=9 \

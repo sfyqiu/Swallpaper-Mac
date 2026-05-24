@@ -157,7 +157,7 @@ final class WallpaperEngineXBridge: ObservableObject {
     /// 屏幕参数变化（分辨率、显示器热插拔等）时重启渲染进程
     private var screenChangeRestartWorkItem: DispatchWorkItem?
     private var lastAppliedScreenConfigurations: [ScreenConfigurationSignature] = []
-    private static let rendererWrapperBundleIdentifier = "com.waifux.wallpaperwgpu.wrapper"
+    private static let rendererWrapperBundleIdentifier = "com.swallpaper.wallpaperwgpu.wrapper"
 
     // MARK: - 初始化
 
@@ -553,7 +553,7 @@ final class WallpaperEngineXBridge: ObservableObject {
         let cacheBase = fm.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         let wrapperRoot = cacheBase
-            .appendingPathComponent("com.waifux.wallpaperengine", isDirectory: true)
+            .appendingPathComponent("com.swallpaper.wallpaperengine", isDirectory: true)
             .appendingPathComponent("RendererWrapper", isDirectory: true)
         let bundleURL = wrapperRoot.appendingPathComponent("WallpaperWGPUAgent.app", isDirectory: true)
         let contentsURL = bundleURL.appendingPathComponent("Contents", isDirectory: true)
@@ -1029,7 +1029,7 @@ final class WallpaperEngineXBridge: ObservableObject {
     private func saveAndApplyStaticFrame(_ image: CGImage, for path: String, cacheKey: String) -> Bool {
         // 保存到缓存目录
         let cacheDir = URL(fileURLWithPath: NSHomeDirectory())
-            .appendingPathComponent("Library/Caches/com.waifux.wallpaperengine/captured-frames")
+            .appendingPathComponent("Library/Caches/com.swallpaper.wallpaperengine/captured-frames")
         try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
 
         let fileURL = cacheDir.appendingPathComponent("\(cacheKey).jpg")

@@ -1,4 +1,4 @@
-# WaifuX
+# Swallpaper
 
 <p align="center">
   <a href="README.md">🇨🇳 简体中文</a> | <a href="README.en.md">🇺🇸 English</a> | <a href="README.ja.md">🇯🇵 日本語</a>
@@ -17,22 +17,22 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/jipika/WaifuX/releases">
-    <img src="https://img.shields.io/github/v/release/jipika/WaifuX?color=6366f1&style=flat-square" alt="Release">
+  <a href="https://github.com/sfyqiu/Swallpaper-Mac/releases">
+    <img src="https://img.shields.io/github/v/release/sfyqiu/Swallpaper-Mac?color=6366f1&style=flat-square" alt="Release">
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-GPL--3.0-06b6d4?style=flat-square" alt="License">
   </a>
-  <a href="https://github.com/jipika/WaifuX/stargazers">
-    <img src="https://img.shields.io/github/stars/jipika/WaifuX?color=f59e0b&style=flat-square" alt="Stars">
+  <a href="https://github.com/sfyqiu/Swallpaper-Mac/stargazers">
+    <img src="https://img.shields.io/github/stars/sfyqiu/Swallpaper-Mac?color=f59e0b&style=flat-square" alt="Stars">
   </a>
-  <a href="https://github.com/jipika/WaifuX/forks">
-    <img src="https://img.shields.io/github/forks/jipika/WaifuX?color=10b981&style=flat-square" alt="Forks">
+  <a href="https://github.com/sfyqiu/Swallpaper-Mac/forks">
+    <img src="https://img.shields.io/github/forks/sfyqiu/Swallpaper-Mac?color=10b981&style=flat-square" alt="Forks">
   </a>
-  <a href="https://github.com/jipika/WaifuX/releases">
-    <img src="https://img.shields.io/github/downloads/jipika/WaifuX/total?color=8b5cf6&style=flat-square" alt="Downloads">
+  <a href="https://github.com/sfyqiu/Swallpaper-Mac/releases">
+    <img src="https://img.shields.io/github/downloads/sfyqiu/Swallpaper-Mac/total?color=8b5cf6&style=flat-square" alt="Downloads">
   </a>
-  <a href="https://jipika.github.io/WaifuX">
+  <a href="https://sfyqiu.github.io/Swallpaper-Mac">
     <img src="https://img.shields.io/badge/Website-🌐-ec4899?style=flat-square" alt="Website">
   </a>
 </p>
@@ -84,17 +84,17 @@
 
 ### Method 1: Official Website (Recommended)
 
-👉 **[https://jipika.github.io/WaifuX](https://jipika.github.io/WaifuX)**
+👉 **[https://sfyqiu.github.io/Swallpaper-Mac](https://sfyqiu.github.io/Swallpaper-Mac)**
 
 ### Method 2: GitHub Releases
 
-👉 **[Releases](https://github.com/jipika/WaifuX/releases)**
+👉 **[Releases](https://github.com/sfyqiu/Swallpaper-Mac/releases)**
 
 ### Method 3: Homebrew
 
 ```bash
-brew tap jipika/waifux
-brew install --cask waifux
+brew tap sfyqiu/swallpaper
+brew install --cask swallpaper
 ```
 
 > ⚠️ On first launch, you may need to allow execution in "System Settings → Privacy & Security".
@@ -105,7 +105,7 @@ brew install --cask waifux
 
 > ⚠️ **Note for users in mainland China**
 
-WaifuX's primary data source, [Wallhaven](https://wallhaven.cc), is hosted on overseas servers. **Direct access from mainland China may be affected by network restrictions.** If you experience issues loading content, please ensure your network can access international websites.
+Swallpaper's primary data source, [Wallhaven](https://wallhaven.cc), is hosted on overseas servers. **Direct access from mainland China may be affected by network restrictions.** If you experience issues loading content, please ensure your network can access international websites.
 
 ---
 
@@ -118,9 +118,9 @@ WaifuX's primary data source, [Wallhaven](https://wallhaven.cc), is hosted on ov
 
 ## 🔧 Rule Engine
 
-WaifuX uses a dynamic rule system with scraping logic decoupled from the client:
+Swallpaper uses a dynamic rule system with scraping logic decoupled from the client:
 
-- Rules are hosted in a separate repository: **[WaifuX-Profiles](https://github.com/jipika/WaifuX-Profiles)**
+- Rules are hosted in a separate repository: **[Swallpaper-Profiles](https://github.com/sfyqiu/Swallpaper-Mac-Profiles)**
 - Latest rules are automatically synced on app startup
 - Supports custom user-imported rules
 - When source site layouts change, only rules need updating — no app release required
@@ -145,9 +145,9 @@ App Launch → Check for Updates → Load Latest Rules → Ready to Use
 
 ## ☕ Support Open Source
 
-WaifuX is a **completely free and open-source** personal project. Developing and maintaining a native macOS application requires significant time and effort — from UI design and feature implementation to bug fixes and rule adaptations, every version is built on continuous personal dedication.
+Swallpaper is a **completely free and open-source** personal project. Developing and maintaining a native macOS application requires significant time and effort — from UI design and feature implementation to bug fixes and rule adaptations, every version is built on continuous personal dedication.
 
-If you find WaifuX helpful, please consider supporting its continued development:
+If you find Swallpaper helpful, please consider supporting its continued development:
 
 <p align="center">
   <img src="reward.jpg" width="280" alt="WeChat Reward QR Code" />
@@ -156,7 +156,7 @@ If you find WaifuX helpful, please consider supporting its continued development
 
 Of course, **giving a Star ⭐️** is also greatly appreciated!
 
-Every bit of support motivates me to keep maintaining and improving this app. Thank you for using WaifuX 💜
+Every bit of support motivates me to keep maintaining and improving this app. Thank you for using Swallpaper 💜
 
 ---
 
@@ -169,14 +169,14 @@ This project is open-sourced under the [GNU General Public License v3.0 (GPL-3.0
 ## ⚠️ Disclaimer
 
 ### 1. Content Aggregation
-WaifuX does **not store or host any content** itself — it acts solely as an aggregator and viewer for third-party content:
+Swallpaper does **not store or host any content** itself — it acts solely as an aggregator and viewer for third-party content:
 - [Wallhaven](https://wallhaven.cc) wallpapers are fetched via their public API
 - [MotionBGs](https://motionbgs.com) content is configured by users themselves
 - Anime video parsing sources are provided and configured by users
 - All content copyrights belong to the original websites and authors
 
 ### 2. Wallpaper Engine Compatibility (Experimental / Beta)
-WaifuX is **NOT an official Wallpaper Engine product** and has **no official partnership, sponsorship, or affiliation** with Valve Corporation, Kristjan Skutta / Wallpaper Engine, or their associated entities. The integrated Wallpaper Engine scene rendering feature is an **experimental third-party compatibility implementation** that performs OpenGL rendering using Workshop content or local files which the user already owns, and is intended solely for personal study, research, and interoperability purposes.
+Swallpaper is **NOT an official Wallpaper Engine product** and has **no official partnership, sponsorship, or affiliation** with Valve Corporation, Kristjan Skutta / Wallpaper Engine, or their associated entities. The integrated Wallpaper Engine scene rendering feature is an **experimental third-party compatibility implementation** that performs OpenGL rendering using Workshop content or local files which the user already owns, and is intended solely for personal study, research, and interoperability purposes.
 - Users **must legally own** a valid Wallpaper Engine software license and the legal right to use any related Workshop content
 - This application does not and cannot verify whether the user holds a legitimate license or authorization for any content
 - If you have not purchased Wallpaper Engine or do not hold the necessary rights, **do not use this feature**
@@ -207,19 +207,19 @@ This application is provided **"AS IS"**, and the developer assumes no liability
 ## 🌟 Star History
 
 <p align="center">
-  <img src="https://api.star-history.com/svg?repos=jipika/WaifuX&type=Date" alt="Star History Chart">
+  <img src="https://api.star-history.com/svg?repos=sfyqiu/Swallpaper-Mac&type=Date" alt="Star History Chart">
 </p>
 
 ---
 
 <p align="center">
   <samp>
-    Made with 💜 by <a href="https://github.com/jipika">@jipika</a>
+    Made with 💜 by <a href="https://github.com/jipika">@sfyqiu</a>
   </samp>
 </p>
 
 <p align="center">
-  <a href="https://github.com/jipika/WaifuX/stargazers">
-    <img src="https://img.shields.io/github/stars/jipika/WaifuX?style=social" alt="Stars">
+  <a href="https://github.com/sfyqiu/Swallpaper-Mac/stargazers">
+    <img src="https://img.shields.io/github/stars/sfyqiu/Swallpaper-Mac?style=social" alt="Stars">
   </a>
 </p>

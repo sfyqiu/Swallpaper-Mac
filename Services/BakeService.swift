@@ -34,7 +34,7 @@ struct BakeVideoResult: Sendable {
 @MainActor
 final class BakeService: ObservableObject {
     static let shared = BakeService()
-    private static let rendererWrapperBundleIdentifier = "com.waifux.wallpaperwgpu.bake.wrapper"
+    private static let rendererWrapperBundleIdentifier = "com.swallpaper.wallpaperwgpu.bake.wrapper"
     private static let minimumCaptureWarmup: TimeInterval = 8.0
     private static let minimumSceneReadyWarmup: TimeInterval = 2.0
     private static let maximumSceneReadyWait: TimeInterval = 24.0
@@ -387,7 +387,7 @@ final class BakeService: ObservableObject {
         )
 
         guard placedByCGS || placedByAX else {
-            throw BakeError.windowPlacementFailed("无法移动/缩放 wallpaper-wgpu 预览窗口。请在「系统设置 → 隐私与安全性 → 辅助功能」中允许 WaifuX，然后重试烘焙。")
+            throw BakeError.windowPlacementFailed("无法移动/缩放 wallpaper-wgpu 预览窗口。请在「系统设置 → 隐私与安全性 → 辅助功能」中允许 Swallpaper，然后重试烘焙。")
         }
 
         if let bounds = try await waitForWindowPlacement(
@@ -1317,7 +1317,7 @@ final class BakeService: ObservableObject {
     /// 保存首帧为静态 fallback 壁纸（锁屏用）
     private func saveStaticFrame(_ image: CGImage, cacheKey: String) {
         let cacheDir = URL(fileURLWithPath: NSHomeDirectory())
-            .appendingPathComponent("Library/Caches/com.waifux.wallpaperengine/captured-frames")
+            .appendingPathComponent("Library/Caches/com.swallpaper.wallpaperengine/captured-frames")
         try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         let fileURL = cacheDir.appendingPathComponent("\(cacheKey).jpg")
 
@@ -1468,7 +1468,7 @@ final class BakeService: ObservableObject {
         let cacheBase = fm.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         let bundleURL = cacheBase
-            .appendingPathComponent("com.waifux.wallpaperengine", isDirectory: true)
+            .appendingPathComponent("com.swallpaper.wallpaperengine", isDirectory: true)
             .appendingPathComponent("BakeRendererWrapper", isDirectory: true)
             .appendingPathComponent("WallpaperWGPUBakeAgent.app", isDirectory: true)
         let contentsURL = bundleURL.appendingPathComponent("Contents", isDirectory: true)
