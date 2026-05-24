@@ -1369,6 +1369,16 @@ private struct WorkshopSettingsTab: View {
                 // 清理下载缓存
                 cleanupSection
 
+                // GitHub Token（提高 API 限额）
+                MacSettingsSection {
+                    MacSettingsRow(title: "GitHub Token", subtitle: "提高更新检查 API 限额至 5000次/小时", showDivider: false) {
+                        SecureField("ghp_...", text: $viewModel.githubToken)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .frame(width: 200)
+                    }
+                }
+
                 // 显示全部内容（仅登录 Steam 后显示）
                 if sourceManager.isSteamAuthenticated {
                     MacSettingsSection {
