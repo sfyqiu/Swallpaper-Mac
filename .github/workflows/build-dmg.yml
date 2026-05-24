@@ -115,10 +115,9 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Swallpaper ${{ steps.version.outputs.version }}
           body: |
-            ## Swallpaper — 基于 WaifuX 的个人定制版
+            ## Swallpaper — 基于 macOS 壁纸的个人定制版
 
-            - 解除成人内容限制
-            - Steam 创意工坊完整访问
+            - macOS 系统下 Steam 创意工坊完整访问
             - 更新检查指向本仓库
 
             ### 安装说明
