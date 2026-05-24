@@ -54,8 +54,9 @@ private extension MainTab {
         switch self {
         case .home: return 0
         case .wallpaperExplore: return 1
-        case .mediaExplore: return 2
-        case .myMedia: return 3
+        case .animeExplore: return 2
+        case .mediaExplore: return 3
+        case .myMedia: return 4
         }
     }
 }
